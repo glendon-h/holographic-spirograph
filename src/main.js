@@ -27,6 +27,11 @@ const trail = new TrailBuffer(3000);
 const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
 
 const settings = new Settings();
+peppersRenderer.setCalibration({
+  scale: settings.get('viewportScale'),
+  offsetX: settings.get('viewportOffsetX'),
+  offsetY: settings.get('viewportOffsetY'),
+});
 const feedManager = new FeedManager();
 const curatedItems = [];
 let lastCycleTime = 0;
@@ -57,6 +62,15 @@ settings.onChange((key, value) => {
       analyzeImageFile(value).then(input => {
         curatedItems.push(input);
         feedManager.setCuratedItems(curatedItems);
+      });
+      break;
+    case 'viewportScale':
+    case 'viewportOffsetX':
+    case 'viewportOffsetY':
+      peppersRenderer.setCalibration({
+        scale: settings.get('viewportScale'),
+        offsetX: settings.get('viewportOffsetX'),
+        offsetY: settings.get('viewportOffsetY'),
       });
       break;
   }

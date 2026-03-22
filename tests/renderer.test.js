@@ -29,4 +29,12 @@ describe('computeViewports', () => {
     // Bottom quadrant should be below center
     expect(vps[1].y).toBeLessThan(centerY);
   });
+
+  it('applies scale calibration', () => {
+    const vps = computeViewports(400, 800, { scale: 0.5 });
+    // scale 0.5 of min(400,800)=400 → size=200, half=100
+    for (const vp of vps) {
+      expect(vp.width).toBeLessThanOrEqual(200);
+    }
+  });
 });

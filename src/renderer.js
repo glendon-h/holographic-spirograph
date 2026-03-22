@@ -103,21 +103,19 @@ export function updateLinePositions(geometry, positions) {
  * Compute the 4 viewport rectangles for the Pepper's ghost diamond layout.
  * Uses the shorter screen dimension as the layout square, centered on screen.
  */
-export function computeViewports(screenW, screenH) {
-  const size = Math.min(screenW, screenH);
+export function computeViewports(screenW, screenH, calibration = {}) {
+  const { scale = 1.0, offsetX = 0, offsetY = 0 } = calibration;
+  const baseSize = Math.min(screenW, screenH);
+  const size = Math.floor(baseSize * scale);
   const half = Math.floor(size / 2);
-  const offsetX = Math.floor((screenW - size) / 2);
-  const offsetY = Math.floor((screenH - size) / 2);
+  const cx = Math.floor(screenW / 2) + offsetX;
+  const cy = Math.floor(screenH / 2) + offsetY;
 
   return [
-    // Top quadrant (back camera)
-    { x: offsetX, y: offsetY + half, width: size, height: half, cameraIndex: 0 },
-    // Bottom quadrant (front camera)
-    { x: offsetX, y: offsetY, width: size, height: half, cameraIndex: 1 },
-    // Left quadrant
-    { x: offsetX, y: offsetY, width: half, height: size, cameraIndex: 2 },
-    // Right quadrant
-    { x: offsetX + half, y: offsetY, width: half, height: size, cameraIndex: 3 },
+    { x: cx - half, y: cy, width: size, height: half, cameraIndex: 0 },
+    { x: cx - half, y: cy - half, width: size, height: half, cameraIndex: 1 },
+    { x: cx - half, y: cy - half, width: half, height: size, cameraIndex: 2 },
+    { x: cx, y: cy - half, width: half, height: size, cameraIndex: 3 },
   ];
 }
 
@@ -161,6 +159,7 @@ export class PeppersGhostRenderer {
     this.renderer = webglRenderer;
     this.scene = scene;
     this.cameras = cameras;
+    this.calibration = {};
 
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -191,10 +190,14 @@ export class PeppersGhostRenderer {
     this.composer.addPass(this.bloomPass);
   }
 
+  setCalibration(calibration) {
+    this.calibration = calibration;
+  }
+
   render() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const viewports = computeViewports(w, h);
+    const viewports = computeViewports(w, h, this.calibration);
 
     // Step 1: Render all 4 viewports to the render target
     this.renderer.setRenderTarget(this.renderTarget);
