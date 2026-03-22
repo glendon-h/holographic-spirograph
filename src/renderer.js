@@ -72,3 +72,55 @@ export function updateLinePositions(geometry, positions) {
   if (positions.length < 6) return;
   geometry.setPositions(positions);
 }
+
+/**
+ * Compute the 4 viewport rectangles for the Pepper's ghost diamond layout.
+ * Uses the shorter screen dimension as the layout square, centered on screen.
+ */
+export function computeViewports(screenW, screenH) {
+  const size = Math.min(screenW, screenH);
+  const half = Math.floor(size / 2);
+  const offsetX = Math.floor((screenW - size) / 2);
+  const offsetY = Math.floor((screenH - size) / 2);
+
+  return [
+    // Top quadrant (back camera)
+    { x: offsetX, y: offsetY + half, width: size, height: half, cameraIndex: 0 },
+    // Bottom quadrant (front camera)
+    { x: offsetX, y: offsetY, width: size, height: half, cameraIndex: 1 },
+    // Left quadrant
+    { x: offsetX, y: offsetY, width: half, height: size, cameraIndex: 2 },
+    // Right quadrant
+    { x: offsetX + half, y: offsetY, width: half, height: size, cameraIndex: 3 },
+  ];
+}
+
+/**
+ * Create 4 cameras arranged at 90° intervals around the origin.
+ * Each camera is flipped upside-down (up vector inverted) to compensate
+ * for the pyramid reflection.
+ */
+export function createPyramidCameras(distance = 12) {
+  const cameras = [];
+  const angles = [
+    Math.PI,       // back (top quadrant on screen)
+    0,             // front (bottom quadrant)
+    Math.PI / 2,   // left
+    -Math.PI / 2,  // right
+  ];
+
+  for (const angle of angles) {
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    cam.position.set(
+      Math.sin(angle) * distance,
+      0,
+      Math.cos(angle) * distance
+    );
+    cam.lookAt(0, 0, 0);
+    cam.up.set(0, -1, 0);
+    cam.lookAt(0, 0, 0);
+    cameras.push(cam);
+  }
+
+  return cameras;
+}
