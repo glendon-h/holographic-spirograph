@@ -55,9 +55,10 @@ export function createSpirographLine() {
   geometry.setPositions([0, 0, 0]);
 
   const material = new LineMaterial({
-    color: 0x88ccff,
+    color: 0xffffff,      // white base (vertex colors will override)
     linewidth: 3,
     worldUnits: false,
+    vertexColors: true,    // enable per-vertex coloring
     transparent: true,
     opacity: 1.0,
   });
@@ -66,6 +67,31 @@ export function createSpirographLine() {
   const line = new Line2(geometry, material);
   line.computeLineDistances();
   return { line, geometry, material };
+}
+
+/**
+ * Generate a color array for the trail — bright at head, faded at tail.
+ * @param {number} pointCount - number of points in the trail
+ * @param {number} hue - base hue in [0, 1]
+ * @param {number} time - current time for subtle hue drift along the curve
+ * @returns {Float32Array} flat [r,g,b, r,g,b, ...] array
+ */
+export function generateTrailColors(pointCount, hue, time) {
+  const colors = new Float32Array(pointCount * 3);
+  const color = new THREE.Color();
+
+  for (let i = 0; i < pointCount; i++) {
+    const progress = i / Math.max(pointCount - 1, 1); // 0 = tail, 1 = head
+    const localHue = (hue + progress * 0.1 + time * 0.01) % 1;
+    const saturation = 0.3 + progress * 0.4; // tail is less saturated
+    const lightness = 0.2 + progress * 0.6;  // tail is dimmer
+    color.setHSL(localHue, saturation, lightness);
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+
+  return colors;
 }
 
 export function updateLinePositions(geometry, positions) {

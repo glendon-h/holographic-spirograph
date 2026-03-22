@@ -3,6 +3,7 @@ import {
   createRenderer, createScene,
   createSpirographLine, updateLinePositions,
   createPyramidCameras, PeppersGhostRenderer,
+  generateTrailColors,
 } from './renderer.js';
 import { computePoint3D, TrailBuffer } from './spirograph.js';
 import { Morpher } from './morpher.js';
@@ -22,6 +23,7 @@ const trail = new TrailBuffer(3000);
 const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
 
 let t = 0;
+let hue = 0.55; // start with pale cyan
 const POINTS_PER_FRAME = 10;
 const T_STEP = 0.02;
 
@@ -39,6 +41,9 @@ function animate() {
   if (trail.length >= 2) {
     updateLinePositions(geometry, trail.toFloat32Array());
     line.computeLineDistances();
+    const colors = generateTrailColors(trail.length, hue, t);
+    geometry.setColors(colors);
+    hue = (hue + 0.00002) % 1; // very slow global hue drift
   }
 
   peppersRenderer.render();
