@@ -68,11 +68,13 @@ export function extractFeatures(type, input) {
 
   if (type === 'image') {
     const meta = input.value;
-    if (meta.brightness !== undefined) features.warmth = meta.brightness;
-    if (meta.edgeDensity !== undefined) features.complexity = meta.edgeDensity;
-    if (meta.hasFaces) features.warmth = Math.max(features.warmth, 0.7);
-    features.weight = 0.8;
+    features.complexity = meta.edgeDensity || 0.5;
+    features.warmth = meta.hasFaces ? 0.8 : (meta.warmth || 0.5);
+    features.scale = meta.brightness || 0.5;
+    features.structure = 1 - (meta.edgeDensity || 0.5);
+    features.energy = meta.brightness || 0.5;
     features.persistence = 0.5;
+    features.weight = 0.8;
   }
 
   return features;
