@@ -144,6 +144,29 @@
   <div class="row"><input type="range" id="s-bloomThr" min="0" max="1" step="0.05" value="0.2"><span class="val" id="v-bloomThr">0.2</span></div>
 
   <hr>
+  <h3>Emotion Server</h3>
+  <label>Server URL</label>
+  <input type="text" id="s-serverUrl" placeholder="http://192.168.x.x:8420" style="width:100%;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;margin-top:4px;">
+  <div id="server-status" style="font-size:11px;color:#666;margin-top:4px;"></div>
+
+  <label>Input Source</label>
+  <select id="s-inputSource">
+    <option value="random">Random (presets)</option>
+    <option value="curated">Curated Collection</option>
+  </select>
+
+  <hr>
+  <h3>Curated Collection</h3>
+  <div id="curated-list" style="max-height:120px;overflow-y:auto;margin:4px 0;"></div>
+  <label>Add Text / Name</label>
+  <div style="display:flex;gap:6px;margin-top:4px;">
+    <input type="text" id="curated-input" placeholder="Text, name, place..." style="flex:1;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+    <button id="curated-add" style="background:#333;color:#ccc;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">+</button>
+  </div>
+  <label>Add Image</label>
+  <input type="file" id="curated-image" accept="image/*" multiple style="margin-top:4px;font-size:12px;">
+
+  <hr>
   <h3>Presets</h3>
   <div id="presets">
     <button data-p="classic">Classic</button>
@@ -643,6 +666,237 @@ document.getElementById('s-auto').addEventListener('change', (e) => {
 });
 
 // ==============================================
+// Emotion Server Client
+// ==============================================
+let emotionServerUrl = localStorage.getItem('holospiro-server') || '';
+let emotionServerOnline = false;
+const serverStatusEl = document.getElementById('server-status');
+
+// Restore server URL
+document.getElementById('s-serverUrl').value = emotionServerUrl;
+
+document.getElementById('s-serverUrl').addEventListener('change', (e) => {
+  emotionServerUrl = e.target.value.trim().replace(/\/$/, '');
+  localStorage.setItem('holospiro-server', emotionServerUrl);
+  checkEmotionServer();
+});
+
+async function checkEmotionServer() {
+  if (!emotionServerUrl) {
+    emotionServerOnline = false;
+    serverStatusEl.textContent = 'No server configured';
+    serverStatusEl.style.color = '#666';
+    return;
+  }
+  try {
+    const res = await fetch(emotionServerUrl + '/health', { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    emotionServerOnline = data.status === 'ok';
+    serverStatusEl.textContent = emotionServerOnline
+      ? `Connected (${data.device}, ${data.emotions_count} dims)`
+      : 'Server error';
+    serverStatusEl.style.color = emotionServerOnline ? '#4a4' : '#a44';
+  } catch {
+    emotionServerOnline = false;
+    serverStatusEl.textContent = 'Cannot reach server';
+    serverStatusEl.style.color = '#a44';
+  }
+}
+
+async function encodeViaServer(type, value) {
+  if (!emotionServerOnline) return null;
+  try {
+    const res = await fetch(emotionServerUrl + '/encode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, value }),
+      signal: AbortSignal.timeout(10000),
+    });
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// Check server on load
+checkEmotionServer();
+
+// ==============================================
+// Emotion → Shape Parameter Mapping
+// ==============================================
+// Maps a 42-dimension emotion vector to spirograph shape preset params.
+// This is the "performer between the page and the sound."
+
+function emotionToShapeParams(emotions) {
+  // Extract key emotion clusters
+  const e = emotions;
+
+  // --- Shape A (outer) selection ---
+  // Warm/loving → heart-like freeform
+  // Calm/serene → circle-ish superformula
+  // Complex/intense → high-m superformula
+  // Playful → starfish/trefoil freeform
+  const warmLove = (e.love || 0) + (e.warmth || 0) + (e.devotion || 0) + (e.intimacy || 0);
+  const calmSerene = (e.serenity || 0) + (e.trust || 0) + (e.hope || 0);
+  const complexIntense = (e.complexity || 0) + (e.intensity || 0) + (e.anger || 0) + (e.tension || 0);
+  const playfulJoy = (e.playfulness || 0) + (e.joy || 0) + (e.excitement || 0);
+  const darkFragile = (e.grief || 0) + (e.sadness || 0) + (e.fragility || 0) + (e.isolation || 0);
+  const grandAwe = (e.grandeur || 0) + (e.awe || 0) + (e.transcendence || 0) + (e.wonder || 0);
+
+  // Pick shape A type based on dominant cluster
+  const clusters = { warmLove, calmSerene, complexIntense, playfulJoy, darkFragile, grandAwe };
+  const dominant = Object.entries(clusters).sort((a, b) => b[1] - a[1])[0][0];
+
+  let shapeDescA, shapeDescB;
+  let ratio, pen;
+
+  if (dominant === 'warmLove') {
+    shapeDescA = { type: 'fourier', name: 'heart' };
+    shapeDescB = { type: 'super', m: 4, n1: 2, n2: 2, n3: 2 };
+    ratio = 0.2 + (e.intimacy || 0) * 0.15;
+    pen = 0.5 + (e.devotion || 0) * 0.4;
+  } else if (dominant === 'calmSerene') {
+    const m = 4 + Math.round((e.trust || 0) * 4) * 2; // 4-12, even
+    shapeDescA = { type: 'super', m, n1: 2, n2: 2, n3: 2 };
+    shapeDescB = { type: 'super', m: 4, n1: 2, n2: 2, n3: 2 };
+    ratio = 0.3 + (e.serenity || 0) * 0.1;
+    pen = 0.6 + (e.hope || 0) * 0.2;
+  } else if (dominant === 'complexIntense') {
+    const m = 6 + Math.round((e.complexity || 0) * 3) * 2;
+    const n1 = 0.2 + (e.intensity || 0) * 0.5;
+    shapeDescA = { type: 'super', m, n1, n2: n1, n3: n1 };
+    shapeDescB = { type: 'super', m: 4, n1: 0.5, n2: 0.5, n3: 0.5 };
+    ratio = 0.2 + (e.tension || 0) * 0.2;
+    pen = 0.7 + (e.anger || 0) * 0.3;
+  } else if (dominant === 'playfulJoy') {
+    const shapes = ['trefoil', 'starfish', 'blob'];
+    const idx = Math.floor((e.playfulness || 0) * shapes.length) % shapes.length;
+    shapeDescA = { type: 'fourier', name: shapes[idx] };
+    shapeDescB = { type: 'super', m: 6, n1: 0.3, n2: 0.3, n3: 0.3 };
+    ratio = 0.3 + (e.excitement || 0) * 0.15;
+    pen = 0.6 + (e.joy || 0) * 0.4;
+  } else if (dominant === 'darkFragile') {
+    shapeDescA = { type: 'fourier', name: 'leaf' };
+    shapeDescB = { type: 'fourier', name: 'blob' };
+    ratio = 0.35 + (e.isolation || 0) * 0.1;
+    pen = 0.4 + (e.fragility || 0) * 0.3;
+  } else { // grandAwe
+    const m = 8 + Math.round((e.grandeur || 0) * 2) * 2;
+    shapeDescA = { type: 'super', m, n1: 0.5, n2: 0.5, n3: 4 + (e.awe || 0) * 4 };
+    shapeDescB = { type: 'super', m: 4, n1: 2, n2: 2, n3: 2 };
+    ratio = 0.25 + (e.wonder || 0) * 0.15;
+    pen = 0.5 + (e.transcendence || 0) * 0.5;
+  }
+
+  // Clamp ratio and pen
+  ratio = Math.max(0.1, Math.min(0.8, ratio));
+  pen = Math.max(0.1, Math.min(1.5, pen));
+
+  // Compute hue from emotion — warm emotions = warm hues, cold = cool hues
+  const hue = ((e.warmth || 0.5) * 60 + (1 - (e.coldness || 0)) * 120 +
+    (e.love || 0) * 330 + (e.sadness || 0) * 240 + (e.joy || 0) * 50) % 360;
+
+  return { A: shapeDescA, B: shapeDescB, ratio, pen, hue };
+}
+
+// ==============================================
+// Curated Collection
+// ==============================================
+let curatedItems = [];
+try {
+  const saved = JSON.parse(localStorage.getItem('holospiro-curated'));
+  if (Array.isArray(saved)) curatedItems = saved;
+} catch {}
+let curatedIndex = 0;
+
+function saveCurated() {
+  const saveable = curatedItems.filter(i => i.type !== 'image');
+  localStorage.setItem('holospiro-curated', JSON.stringify(saveable));
+}
+
+function renderCuratedList() {
+  const list = document.getElementById('curated-list');
+  list.innerHTML = curatedItems.map((item, i) =>
+    `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #222;">
+      <span style="font-size:11px;color:#aaa;">${item.type === 'image' ? '(image)' : item.value.substring(0, 35)}</span>
+      <button data-idx="${i}" class="curated-rm" style="background:none;border:none;color:#666;cursor:pointer;">&times;</button>
+    </div>`
+  ).join('');
+  list.querySelectorAll('.curated-rm').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      curatedItems.splice(parseInt(btn.dataset.idx), 1);
+      saveCurated();
+      renderCuratedList();
+    });
+  });
+}
+
+document.getElementById('curated-add').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const input = document.getElementById('curated-input');
+  const val = input.value.trim();
+  if (!val) return;
+  curatedItems.push({ type: 'text', value: val });
+  input.value = '';
+  saveCurated();
+  renderCuratedList();
+});
+
+document.getElementById('curated-image').addEventListener('change', (e) => {
+  for (const file of e.target.files) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Store as base64 (for sending to server)
+      const b64 = reader.result.split(',')[1];
+      curatedItems.push({ type: 'image', value: b64 });
+      renderCuratedList();
+    };
+    reader.readAsDataURL(file);
+  }
+  e.target.value = '';
+});
+
+renderCuratedList();
+
+// --- Input source selector ---
+let inputSource = 'random';
+document.getElementById('s-inputSource').addEventListener('change', (e) => {
+  inputSource = e.target.value;
+});
+
+// --- Advance to next input and encode ---
+async function advanceFromInput() {
+  if (inputSource === 'random' || curatedItems.length === 0) return false;
+
+  const item = curatedItems[curatedIndex % curatedItems.length];
+  curatedIndex++;
+
+  // Try emotion server first
+  if (emotionServerOnline) {
+    const result = await encodeViaServer(item.type, item.value);
+    if (result && result.emotions) {
+      const params = emotionToShapeParams(result.emotions);
+      targetCoeffsA = shapeToCoeffs(params.A);
+      targetCoeffsB = shapeToCoeffs(params.B);
+      targetRatio = params.ratio;
+      targetPen = params.pen;
+      baseHue = params.hue;
+
+      // Show what's driving this
+      const top = result.top_emotions.slice(0, 3).map(e => e.name).join(', ');
+      showStatus(`${item.type === 'image' ? 'image' : '"' + item.value.substring(0, 25) + '"'} → ${top}`);
+      return true;
+    }
+  }
+
+  // Fallback: pick a random preset (server not available)
+  showStatus(`${item.value ? item.value.substring(0, 25) : 'image'} (no server — random preset)`);
+  setTarget(pickRandomPreset());
+  return true;
+}
+
+// ==============================================
 // Panel toggle (tap canvas to open/close)
 // ==============================================
 const controlsPanel = document.getElementById('controls');
@@ -785,8 +1039,14 @@ function animateWithBloom() {
       baseHue = (baseHue + 60 + Math.random() * 60) % 360;
       tAtCycleStart = dist;
       if (autoMode) {
-        setTarget(pickRandomPreset());
-        showStatus('preset: ' + pickRandomPreset());
+        // Try curated input first, fall back to random preset
+        advanceFromInput().then(used => {
+          if (!used) {
+            const next = pickRandomPreset();
+            setTarget(next);
+            showStatus('preset: ' + next);
+          }
+        });
       }
     }
   }

@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  emotion-server:
+    build: .
+    image: holospiro-emotion
+    container_name: holospiro-emotion
+    ports:
+      - "8420:8420"
+    volumes:
+      - holospiro-models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  holospiro-models:
