@@ -5,7 +5,7 @@ import {
   createPyramidCameras, PeppersGhostRenderer,
   generateTrailColors,
 } from './renderer.js';
-import { computePoint3D, TrailBuffer } from './spirograph.js';
+import { computePoint3D, computePoint2D, TrailBuffer, rotatePoint2DIn3D } from './spirograph.js';
 import { Morpher } from './morpher.js';
 import { Settings } from './settings.js';
 
@@ -56,7 +56,25 @@ function animate() {
 
   for (let i = 0; i < POINTS_PER_FRAME; i++) {
     t += T_STEP;
-    trail.push(computePoint3D(t, params));
+    const mode = settings.get('mode');
+    let point;
+    if (mode === '3d') {
+      point = computePoint3D(t, params);
+    } else if (mode === '2d') {
+      point = computePoint2D(t, params);
+      point = rotatePoint2DIn3D(point, t * 0.01);
+    } else {
+      // Mix — blend between modes
+      const blend = (Math.sin(t * 0.001) + 1) / 2;
+      const p3d = computePoint3D(t, params);
+      const p2d = rotatePoint2DIn3D(computePoint2D(t, params), t * 0.01);
+      point = {
+        x: p3d.x * blend + p2d.x * (1 - blend),
+        y: p3d.y * blend + p2d.y * (1 - blend),
+        z: p3d.z * blend + p2d.z * (1 - blend),
+      };
+    }
+    trail.push(point);
   }
 
   if (trail.length >= 2) {

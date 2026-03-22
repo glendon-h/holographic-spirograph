@@ -22,6 +22,29 @@ export function computePoint2D(t, params) {
   };
 }
 
+/**
+ * Apply a 3D rotation to a 2D point (z=0).
+ * Rotates around axes that slowly change over time.
+ */
+export function rotatePoint2DIn3D(point, time) {
+  const ax = time * 0.1;
+  const ay = time * 0.07;
+
+  let { x, y, z } = point;
+
+  // Rotate around X
+  const cosX = Math.cos(ax), sinX = Math.sin(ax);
+  const y1 = y * cosX - z * sinX;
+  const z1 = y * sinX + z * cosX;
+
+  // Rotate around Y
+  const cosY = Math.cos(ay), sinY = Math.sin(ay);
+  const x1 = x * cosY + z1 * sinY;
+  const z2 = -x * sinY + z1 * cosY;
+
+  return { x: x1, y: y1, z: z2 };
+}
+
 export class TrailBuffer {
   constructor(capacity) {
     this._capacity = capacity;
