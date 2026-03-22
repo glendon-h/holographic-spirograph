@@ -1,7 +1,7 @@
 {
   "name": "Holographic Spirograph",
   "short_name": "HoloSpiro",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "fullscreen",
   "background_color": "#000000",
   "theme_color": "#000000",

@@ -1,60 +1,876 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Holographic Spirograph</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    canvas { display: block; width: 100%; height: 100%; }
-    #settings-panel {
-  position: fixed;
-  top: 0;
-  right: -320px;
-  width: 300px;
-  height: 100%;
-  background: rgba(10, 10, 10, 0.95);
-  color: #ccc;
-  padding: 20px;
-  overflow-y: auto;
-  transition: right 0.3s ease;
-  z-index: 100;
-  font-family: -apple-system, sans-serif;
-  font-size: 14px;
-}
-#settings-panel.visible { right: 0; }
-#settings-panel label { display: block; margin-top: 12px; color: #888; font-size: 12px; text-transform: uppercase; }
-#settings-panel select, #settings-panel input[type="range"] { width: 100%; margin-top: 4px; }
-#settings-panel select { background: #222; color: #ccc; border: 1px solid #444; padding: 6px; border-radius: 4px; }
-#settings-panel input[type="range"] { accent-color: #88ccff; }
-.settings-header { display: flex; justify-content: space-between; align-items: center; }
-.settings-header h2 { margin: 0; font-size: 18px; color: #fff; }
-#settings-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
-.range-value { color: #88ccff; font-size: 12px; }
-#settings-panel hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
-#settings-panel h3 { color: #fff; font-size: 14px; margin: 0; }
-  </style>
-  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <title>Holographic Spirograph</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    .layer { display: none; }
+
+    #settings {
+      position: fixed; top: 0; right: -320px; width: 300px; height: 100%;
+      background: rgba(10,10,10,0.95); color: #ccc; padding: 20px;
+      overflow-y: auto; transition: right 0.3s ease; z-index: 100;
+      font-family: -apple-system, sans-serif; font-size: 14px;
+    }
+    #settings.open { right: 0; }
+    #settings h2 { margin: 0 0 12px; font-size: 18px; color: #fff; }
+    #settings h3 { margin: 16px 0 4px; font-size: 13px; color: #fff; }
+    #settings hr { border: none; border-top: 1px solid #333; margin: 14px 0; }
+    #settings label { display: block; margin-top: 10px; color: #888; font-size: 11px; text-transform: uppercase; }
+    #settings input[type="range"] { width: 100%; margin-top: 4px; accent-color: #88ccff; }
+    #settings select { width: 100%; margin-top: 4px; background: #222; color: #ccc; border: 1px solid #444; padding: 6px; border-radius: 4px; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    .row .val { color: #88ccff; font-size: 12px; min-width: 40px; text-align: right; }
+    #settings-close { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #888; font-size: 22px; cursor: pointer; }
+    #settings-close:hover { color: #fff; }
+
+    #status {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      color: #555; font-family: -apple-system, monospace; font-size: 11px;
+      z-index: 50; pointer-events: none; transition: opacity 0.5s;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+<div id="settings">
+  <button id="settings-close">&times;</button>
+  <h2>Settings</h2>
+
+  <label>View Mode</label>
+  <select id="s-viewMode">
+    <option value="peppers">Pepper's Ghost (4-way)</option>
+    <option value="single">Single View</option>
+  </select>
+
+  <hr>
+  <h3>Drawing</h3>
+
+  <label>Draw Speed</label>
+  <div class="row"><input type="range" id="s-drawSpeed" min="0.002" max="0.02" step="0.001" value="0.008"><span class="val" id="v-drawSpeed">0.008</span></div>
+
+  <label>Segments Per Frame</label>
+  <div class="row"><input type="range" id="s-segsPerFrame" min="1" max="10" step="1" value="4"><span class="val" id="v-segsPerFrame">4</span></div>
+
+  <label>Eraser Speed</label>
+  <div class="row"><input type="range" id="s-eraseSpeed" min="2" max="20" step="1" value="8"><span class="val" id="v-eraseSpeed">8</span></div>
+
+  <label>Morph Rate</label>
+  <div class="row"><input type="range" id="s-lerpRate" min="0.001" max="0.01" step="0.001" value="0.003"><span class="val" id="v-lerpRate">0.003</span></div>
+
+  <label>Line Width</label>
+  <div class="row"><input type="range" id="s-lineWidth" min="1" max="5" step="0.5" value="2"><span class="val" id="v-lineWidth">2</span></div>
+
+  <hr>
+  <h3>Bloom</h3>
+
+  <label>Strength</label>
+  <div class="row"><input type="range" id="s-bloomStrength" min="0" max="3" step="0.1" value="0.8"><span class="val" id="v-bloomStrength">0.8</span></div>
+
+  <label>Radius</label>
+  <div class="row"><input type="range" id="s-bloomRadius" min="0" max="2" step="0.1" value="0.4"><span class="val" id="v-bloomRadius">0.4</span></div>
+
+  <label>Threshold</label>
+  <div class="row"><input type="range" id="s-bloomThreshold" min="0" max="1" step="0.05" value="0.2"><span class="val" id="v-bloomThreshold">0.2</span></div>
+
+  <hr>
+  <h3>3D Camera</h3>
+
+  <label>Camera Tilt</label>
+  <div class="row"><input type="range" id="s-camTilt" min="0" max="1.2" step="0.05" value="0.3"><span class="val" id="v-camTilt">0.3</span></div>
+
+  <label>Camera Distance</label>
+  <div class="row"><input type="range" id="s-camDist" min="2" max="8" step="0.1" value="3.5"><span class="val" id="v-camDist">3.5</span></div>
+
+  <hr>
+  <h3>Color</h3>
+
+  <label>Saturation</label>
+  <div class="row"><input type="range" id="s-saturation" min="0" max="100" step="5" value="80"><span class="val" id="v-saturation">80</span></div>
+
+  <label>Lightness</label>
+  <div class="row"><input type="range" id="s-lightness" min="20" max="80" step="5" value="60"><span class="val" id="v-lightness">60</span></div>
+
+  <hr>
+  <h3>Input Source</h3>
+
+  <label>Source</label>
+  <select id="s-inputSource">
+    <option value="random">Random (presets)</option>
+    <option value="curated">Curated Collection</option>
+    <option value="live">Live (clock + weather)</option>
+    <option value="both">Curated + Live</option>
+  </select>
+
+  <label>Weather Location</label>
+  <div style="display:flex;gap:6px;margin-top:4px;">
+    <input type="number" id="s-weatherLat" placeholder="Lat" step="0.01" style="width:45%;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+    <input type="number" id="s-weatherLon" placeholder="Lon" step="0.01" style="width:45%;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+    <button id="s-weatherSet" style="background:#333;color:#ccc;border:1px solid #444;padding:6px 8px;border-radius:4px;cursor:pointer;">Set</button>
+  </div>
+
+  <hr>
+  <h3>Curated Collection</h3>
+  <div id="curated-list" style="max-height:150px;overflow-y:auto;margin:6px 0;"></div>
+
+  <label>Add Text / Name</label>
+  <div style="display:flex;gap:6px;margin-top:4px;">
+    <input type="text" id="curated-input" placeholder="Text, name, or place..." style="flex:1;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+    <select id="curated-type" style="background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+      <option value="text">Text</option>
+      <option value="name">Name</option>
+      <option value="location">Place</option>
+    </select>
+    <button id="curated-add" style="background:#333;color:#ccc;border:1px solid #444;padding:6px 8px;border-radius:4px;cursor:pointer;">+</button>
+  </div>
+
+  <label>Add Image</label>
+  <input type="file" id="curated-image" accept="image/*" multiple style="margin-top:4px;font-size:12px;">
+</div>
+
+<div id="status"></div>
+<canvas id="view0" class="layer"></canvas>
+<canvas id="view1" class="layer"></canvas>
+<canvas id="view2" class="layer"></canvas>
+<canvas id="view3" class="layer"></canvas>
+<canvas id="composite" class="layer"></canvas>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ==============================================
+// 4-view Pepper's ghost with single-view toggle
+// ==============================================
+const viewCanvases = [0,1,2,3].map(i => document.getElementById('view' + i));
+const viewCtxs = viewCanvases.map(c => c.getContext('2d'));
+const compCanvas = document.getElementById('composite');
+const compCtx = compCanvas.getContext('2d');
+
+let screenW, screenH;
+
+// 4 camera angles for the pyramid faces: front, back, left, right
+// Each is a fixed Y-orbit angle. The point-down pyramid means:
+// Top quadrant = back camera (π), Bottom = front (0), Left = left (π/2), Right = right (-π/2)
+// Views are flipped (camera up = -Y) for pyramid reflection
+const CAM_ANGLES = [
+  { yAngle: Math.PI,      label: 'back',  flip: true },  // top quadrant
+  { yAngle: 0,            label: 'front', flip: true },  // bottom quadrant
+  { yAngle: Math.PI / 2,  label: 'left',  flip: true },  // left quadrant
+  { yAngle: -Math.PI / 2, label: 'right', flip: true },  // right quadrant
+];
+
+function resize() {
+  screenW = window.innerWidth;
+  screenH = window.innerHeight;
+  compCanvas.width = screenW;
+  compCanvas.height = screenH;
+
+  // Each view canvas is half the screen size (they go in quadrants)
+  const halfW = Math.floor(screenW / 2);
+  const halfH = Math.floor(screenH / 2);
+  const viewSize = Math.min(halfW, halfH);
+
+  for (const c of viewCanvases) {
+    c.width = viewSize;
+    c.height = viewSize;
+  }
+
+  // Reinit view state
+  for (let i = 0; i < 4; i++) {
+    const ctx = viewCtxs[i];
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, viewSize, viewSize);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+}
+resize();
+
+// ==============================================
+// Data Encoding Pipeline
+// ==============================================
+
+// --- Simple deterministic hash ---
+function hashStr(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) & 0xffffffff;
+  return (h >>> 0) / 0xffffffff;
+}
+
+// --- Feature extraction ---
+function extractFeatures(input) {
+  const f = { complexity: 0.5, warmth: 0.5, scale: 0.5, structure: 0.5, energy: 0.5, persistence: 0.5, weight: 0.5 };
+
+  if (input.type === 'text') {
+    const len = input.value.length;
+    f.complexity = Math.min(len / 200, 1);
+    f.warmth = 0.7;
+    f.scale = Math.min(len / 100, 1) * 0.5 + 0.25;
+    const vowels = (input.value.match(/[aeiou]/gi) || []).length;
+    f.structure = 1 - vowels / Math.max(len, 1);
+    f.energy = 0.4; f.persistence = 0.6; f.weight = Math.min(len / 50, 1);
+  }
+  else if (input.type === 'name') {
+    f.complexity = Math.min(input.value.length / 20, 1) * 0.6;
+    f.warmth = 0.8; f.structure = 0.4; f.persistence = 0.9; f.weight = 0.7;
+  }
+  else if (input.type === 'time') {
+    const d = input.value;
+    const hour = d.getHours() + d.getMinutes() / 60;
+    f.energy = Math.sin((hour / 24) * Math.PI);
+    f.warmth = 0.3 + f.energy * 0.5;
+    f.complexity = 0.3; f.structure = 0.8; f.persistence = 0.2;
+  }
+  else if (input.type === 'weather') {
+    const { temperature, wind, cloudCover } = input.value;
+    f.warmth = Math.max(0, Math.min(1, (temperature + 10) / 50)); // -10C=0, 40C=1
+    f.energy = Math.min(wind / 40, 1);
+    f.complexity = cloudCover / 100;
+    f.scale = 0.6; f.structure = 0.5; f.persistence = 0.4;
+  }
+  else if (input.type === 'image') {
+    const m = input.value;
+    f.complexity = m.edgeDensity || 0.5;
+    f.warmth = m.hasFaces ? 0.8 : (m.warmth || 0.5);
+    f.scale = m.brightness || 0.5;
+    f.structure = 1 - (m.edgeDensity || 0.5);
+    f.energy = m.brightness || 0.5;
+    f.weight = 0.8;
+  }
+
+  // Hash-based perturbation for determinism
+  const seed = hashStr(JSON.stringify(input));
+  for (const k of Object.keys(f)) {
+    f[k] = Math.max(0, Math.min(1, f[k] + (hashStr(k + seed) - 0.5) * 0.15));
+  }
+  return f;
+}
+
+// --- Map features to spirograph params [R, r, d, A, fz, phase] ---
+function featuresToParams(features) {
+  const { complexity, warmth, scale, structure, energy, persistence, weight } = features;
+  function mix(primary, ...rest) {
+    return primary * 0.7 + (rest.reduce((a, b) => a + b, 0) / rest.length) * 0.3;
+  }
+  function lerp(min, max, t) { return min + (max - min) * Math.max(0, Math.min(1, t)); }
+
+  return [
+    lerp(5, 12, mix(scale, energy, weight)),           // R
+    lerp(2, 7, mix(complexity, structure)),              // r
+    lerp(1, 6, mix(scale, complexity, warmth)),          // d
+    lerp(0.5, 3, mix(scale, energy)),                    // A
+    lerp(0.5, 4, mix(complexity, energy, structure)),    // fz
+    lerp(0, Math.PI * 2, mix(warmth, persistence)),      // phase
+  ];
+}
+
+function encode(input) {
+  return featuresToParams(extractFeatures(input));
+}
+
+// --- Image analysis (canvas pixel extraction) ---
+function analyzeImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      const sz = 64;
+      c.width = sz; c.height = sz;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0, sz, sz);
+      const px = cx.getImageData(0, 0, sz, sz).data;
+      const n = sz * sz;
+
+      let totalR = 0, totalG = 0, totalB = 0, totalBright = 0, edgeSum = 0, skin = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        totalR += px[i]; totalG += px[i+1]; totalB += px[i+2];
+        totalBright += (px[i] + px[i+1] + px[i+2]) / 3;
+        if (px[i] > 95 && px[i+1] > 40 && px[i+2] > 20 && px[i] > px[i+1] && (px[i] - px[i+1]) > 15) skin++;
+      }
+      for (let y = 1; y < sz - 1; y++) for (let x = 1; x < sz - 1; x++) {
+        const idx = (y * sz + x) * 4;
+        const cur = (px[idx] + px[idx+1] + px[idx+2]) / 3;
+        const rt = (px[idx+4] + px[idx+5] + px[idx+6]) / 3;
+        const dn = (px[idx+sz*4] + px[idx+sz*4+1] + px[idx+sz*4+2]) / 3;
+        edgeSum += Math.abs(cur - rt) + Math.abs(cur - dn);
+      }
+
+      URL.revokeObjectURL(url);
+      resolve({
+        brightness: totalBright / n / 255,
+        edgeDensity: Math.min(edgeSum / (n * 128), 1),
+        warmth: totalR / (totalR + totalG + totalB + 1),
+        hasFaces: skin / n > 0.15,
+      });
+    };
+    img.src = url;
+  });
+}
+
+// --- Curated collection ---
+let curatedItems = [];
+try {
+  const saved = JSON.parse(localStorage.getItem('holospiro-curated'));
+  if (Array.isArray(saved)) curatedItems = saved;
+} catch {}
+
+let curatedIndex = 0;
+
+function saveCurated() {
+  // Don't save image data (too large) — save text/name/location only
+  const saveable = curatedItems.filter(i => i.type !== 'image');
+  localStorage.setItem('holospiro-curated', JSON.stringify(saveable));
+}
+
+function renderCuratedList() {
+  const list = document.getElementById('curated-list');
+  list.innerHTML = curatedItems.map((item, i) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #222;">
+      <span style="font-size:12px;color:#aaa;">${item.type}: ${item.type === 'image' ? '(image)' : item.value.substring(0, 30)}</span>
+      <button data-idx="${i}" class="curated-rm" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">&times;</button>
+    </div>`
+  ).join('');
+  list.querySelectorAll('.curated-rm').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      curatedItems.splice(parseInt(btn.dataset.idx), 1);
+      saveCurated();
+      renderCuratedList();
+    });
+  });
+}
+
+document.getElementById('curated-add').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const input = document.getElementById('curated-input');
+  const type = document.getElementById('curated-type').value;
+  const val = input.value.trim();
+  if (!val) return;
+  curatedItems.push({ type, value: val });
+  input.value = '';
+  saveCurated();
+  renderCuratedList();
+});
+
+document.getElementById('curated-image').addEventListener('change', async (e) => {
+  for (const file of e.target.files) {
+    const features = await analyzeImage(file);
+    curatedItems.push({ type: 'image', value: features });
+  }
+  e.target.value = '';
+  renderCuratedList();
+});
+
+renderCuratedList();
+
+// --- Weather feed ---
+let weatherCache = null;
+let lastWeatherFetch = 0;
+let weatherLat = null, weatherLon = null;
+
+try {
+  const loc = JSON.parse(localStorage.getItem('holospiro-weather'));
+  if (loc) { weatherLat = loc.lat; weatherLon = loc.lon; }
+} catch {}
+
+document.getElementById('s-weatherSet').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const lat = parseFloat(document.getElementById('s-weatherLat').value);
+  const lon = parseFloat(document.getElementById('s-weatherLon').value);
+  if (!isNaN(lat) && !isNaN(lon)) {
+    weatherLat = lat; weatherLon = lon;
+    localStorage.setItem('holospiro-weather', JSON.stringify({ lat, lon }));
+    weatherCache = null; lastWeatherFetch = 0; // force refetch
+  }
+});
+
+// Restore lat/lon inputs
+if (weatherLat !== null) {
+  document.getElementById('s-weatherLat').value = weatherLat;
+  document.getElementById('s-weatherLon').value = weatherLon;
+}
+
+async function fetchWeather() {
+  if (weatherLat === null) return null;
+  const now = Date.now();
+  if (weatherCache && now - lastWeatherFetch < 600000) return weatherCache;
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${weatherLat}&longitude=${weatherLon}&current=temperature_2m,wind_speed_10m,cloud_cover`);
+    const data = await res.json();
+    weatherCache = {
+      type: 'weather',
+      value: {
+        temperature: data.current.temperature_2m,
+        wind: data.current.wind_speed_10m,
+        cloudCover: data.current.cloud_cover,
+      },
+    };
+    lastWeatherFetch = now;
+    return weatherCache;
+  } catch { return weatherCache; }
+}
+
+// --- Get next input based on source mode ---
+async function getNextInput() {
+  const source = settings.inputSource || 'random';
+
+  if (source === 'random') return null; // use presets
+
+  if (source === 'curated') {
+    if (curatedItems.length === 0) return null;
+    const item = curatedItems[curatedIndex % curatedItems.length];
+    curatedIndex++;
+    return item;
+  }
+
+  if (source === 'live') {
+    // Blend clock + weather
+    const weather = await fetchWeather();
+    if (weather) return weather;
+    return { type: 'time', value: new Date() };
+  }
+
+  if (source === 'both') {
+    // Alternate curated and live
+    if (curatedItems.length > 0 && curatedIndex % 2 === 0) {
+      const item = curatedItems[Math.floor(curatedIndex / 2) % curatedItems.length];
+      curatedIndex++;
+      return item;
+    }
+    curatedIndex++;
+    const weather = await fetchWeather();
+    if (weather) return weather;
+    return { type: 'time', value: new Date() };
+  }
+
+  return null;
+}
+
+// --- Presets: [R, r, d, A, fz, phase] ---
+const PRESETS = [
+  [8, 3, 5,    1.5, 2.0, 0],
+  [10, 3, 5,   2.0, 3.0, 1],
+  [7, 4, 3.5,  1.0, 1.5, 0.5],
+  [10, 7, 4,   1.8, 2.5, 2],
+  [9, 5, 3,    1.2, 2.0, 0],
+  [11, 4, 5,   2.5, 3.5, 1.5],
+  [8, 5, 4,    1.0, 1.0, 0],
+  [12, 5, 4,   2.0, 2.0, 3],
+  [7, 2, 4,    1.5, 3.0, 0.5],
+  [9, 4, 5,    1.8, 2.5, 1],
+];
+
+function pickPreset(exclude) {
+  let p;
+  do { p = PRESETS[Math.floor(Math.random() * PRESETS.length)]; } while (p === exclude);
+  return p;
+}
+
+// --- 3D Spirograph ---
+function compute3DPoint(t, R, r, d, A, fz, phase) {
+  const diff = R - r;
+  const ratio = diff / r;
+  const maxExtent = Math.abs(diff) + Math.abs(d);
+  return {
+    x: (diff * Math.cos(t) + d * Math.cos(ratio * t)) / maxExtent,
+    y: (diff * Math.sin(t) - d * Math.sin(ratio * t)) / maxExtent,
+    z: (A * Math.sin(fz * t + phase)) / maxExtent,
+  };
+}
+
+// --- Settings (mutable, wired to panel) ---
+let settings = {
+  viewMode: 'peppers',
+  drawSpeed: 0.008,
+  segsPerFrame: 4,
+  eraseSpeed: 8,
+  lerpRate: 0.003,
+  lineWidth: 2,
+  bloomStrength: 0.8,
+  bloomRadius: 0.4,
+  bloomThreshold: 0.2,
+  camTilt: 0.3,
+  camDist: 3.5,
+  saturation: 80,
+  lightness: 60,
+  inputSource: 'random',
+};
+
+// Load from localStorage
+try {
+  const saved = JSON.parse(localStorage.getItem('holospiro'));
+  if (saved) Object.assign(settings, saved);
+} catch {}
+
+function saveSettings() {
+  localStorage.setItem('holospiro', JSON.stringify(settings));
+}
+
+// --- Settings panel wiring ---
+const panel = document.getElementById('settings');
+let panelOpen = false;
+
+function openPanel() { panel.classList.add('open'); panelOpen = true; }
+function closePanel() { panel.classList.remove('open'); panelOpen = false; }
+
+document.getElementById('settings-close').addEventListener('click', (e) => {
+  e.stopPropagation();
+  closePanel();
+});
+panel.addEventListener('click', (e) => e.stopPropagation());
+
+// Tap anywhere on the WebGL canvas to toggle panel (added after renderer is created)
+function setupPanelToggle() {
+  renderer.domElement.addEventListener('click', () => {
+    if (panelOpen) closePanel(); else openPanel();
+  });
+}
+
+// Bind all sliders/selects
+function bindSetting(id, key, transform) {
+  const el = document.getElementById('s-' + id);
+  const valEl = document.getElementById('v-' + id);
+  if (!el) return;
+
+  // Set initial value
+  el.value = settings[key];
+  if (valEl) valEl.textContent = settings[key];
+
+  const event = el.tagName === 'SELECT' ? 'change' : 'input';
+  el.addEventListener(event, () => {
+    const raw = el.tagName === 'SELECT' ? el.value : parseFloat(el.value);
+    settings[key] = raw;
+    if (valEl) valEl.textContent = raw;
+    if (transform) transform(raw);
+    saveSettings();
+  });
+
+  // Apply initial transform
+  if (transform) transform(settings[key]);
+}
+
+// --- Projection for a specific camera ---
+let CAM_TILT = settings.camTilt;
+let CAM_DIST = settings.camDist;
+
+function project(p3d, camYAngle, flip, viewSize) {
+  const half = viewSize / 2;
+  const viewScale = half * 0.8;
+
+  const camX = Math.sin(camYAngle) * Math.cos(CAM_TILT) * CAM_DIST;
+  const camY = Math.sin(CAM_TILT) * CAM_DIST;
+  const camZ = Math.cos(camYAngle) * Math.cos(CAM_TILT) * CAM_DIST;
+
+  const dx = p3d.x - camX;
+  const dy = p3d.y - camY;
+  const dz = p3d.z - camZ;
+
+  const fLen = Math.sqrt(camX*camX + camY*camY + camZ*camZ);
+  const fx = -camX/fLen, fy = -camY/fLen, fz_c = -camZ/fLen;
+
+  let rx = fz_c, ry = 0, rz = -fx;
+  const rLen = Math.sqrt(rx*rx + ry*ry + rz*rz);
+  if (rLen > 0.001) { rx /= rLen; ry /= rLen; rz /= rLen; }
+
+  const ux = ry*fz_c - rz*fy;
+  const uy = rz*fx - rx*fz_c;
+  const uz = rx*fy - ry*fx;
+
+  const depth = dx*fx + dy*fy + dz*fz_c;
+  if (depth < 0.1) return null;
+
+  const perspective = 2.0 / depth;
+  let screenX = (dx*rx + dy*ry + dz*rz) * perspective;
+  let screenY = (dx*ux + dy*uy + dz*uz) * perspective;
+
+  // Flip for pyramid reflection
+  if (flip) screenY = -screenY;
+
+  return {
+    x: half + screenX * viewScale,
+    y: half - screenY * viewScale,
+  };
+}
+
+function hsl(h, s, l, a) {
+  return `hsla(${h}, ${s}%, ${l}%, ${a})`;
+}
+
+// --- Shared spirograph state (all views draw the same curve) ---
+let currentPreset = pickPreset(null);
+let R = currentPreset[0], r = currentPreset[1], d = currentPreset[2];
+let A = currentPreset[3], fz = currentPreset[4], phase = currentPreset[5];
+let targetR = R, targetr = r, targetd = d;
+let targetA = A, targetfz = fz, targetphase = phase;
+let baseHue = Math.random() * 360;
+const MIN_CYCLE_T = Math.PI * 8;
+
+let t = 0;
+let tAtCycleStart = 0;
+
+// Per-view previous screen positions
+let prevPos = [null, null, null, null];
+
+// Segments stored per-view for eraser
+let segments = [[], [], [], []];
+let erasing = false;
+let eraseIndex = 0;
+
+const statusEl = document.getElementById('status');
+let statusTimer = null;
+
+function showStatus(msg) {
+  statusEl.textContent = msg;
+  statusEl.style.opacity = '1';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { statusEl.style.opacity = '0'; }, 4000);
+}
+
+async function advanceToNextPattern() {
+  const input = await getNextInput();
+  let next;
+  if (input) {
+    next = encode(input);
+    // Show what's driving this pattern
+    if (input.type === 'text') showStatus(`text: "${input.value.substring(0, 40)}"`);
+    else if (input.type === 'name') showStatus(`name: ${input.value}`);
+    else if (input.type === 'location') showStatus(`place: ${input.value}`);
+    else if (input.type === 'time') showStatus(`time: ${input.value.toLocaleTimeString()}`);
+    else if (input.type === 'weather') showStatus(`weather: ${input.value.temperature}°C, wind ${input.value.wind}km/h`);
+    else if (input.type === 'image') showStatus(`image → complexity:${input.value.edgeDensity?.toFixed(2)} warmth:${input.value.warmth?.toFixed(2)}`);
+  } else {
+    next = pickPreset(currentPreset);
+    currentPreset = next;
+    showStatus('random preset');
+  }
+  targetR = next[0]; targetr = next[1]; targetd = next[2];
+  targetA = next[3]; targetfz = next[4]; targetphase = next[5];
+  baseHue = (baseHue + 60 + Math.random() * 60) % 360;
+}
+
+function updateDrawing() {
+  const viewSize = viewCanvases[0].width;
+
+  // --- Eraser ---
+  if (erasing) {
+    const eraseEnd = Math.min(eraseIndex + settings.eraseSpeed, segments[0].length);
+    for (let v = 0; v < 4; v++) {
+      const ctx = viewCtxs[v];
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = eraseIndex; i < eraseEnd && i < segments[v].length; i++) {
+        const seg = segments[v][i];
+        ctx.moveTo(seg.x0, seg.y0);
+        ctx.lineTo(seg.x1, seg.y1);
+      }
+      ctx.stroke();
+    }
+    eraseIndex = eraseEnd;
+    if (eraseIndex >= segments[0].length) {
+      erasing = false;
+      segments = [[], [], [], []];
+      eraseIndex = 0;
     }
   }
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+
+  // --- Param lerp ---
+  R += (targetR - R) * settings.lerpRate;
+  r += (targetr - r) * settings.lerpRate;
+  d += (targetd - d) * settings.lerpRate;
+  A += (targetA - A) * settings.lerpRate;
+  fz += (targetfz - fz) * settings.lerpRate;
+  phase += (targetphase - phase) * settings.lerpRate;
+
+  // --- Draw on all 4 views simultaneously ---
+  for (let i = 0; i < settings.segsPerFrame; i++) {
+    t += settings.drawSpeed;
+    const p3d = compute3DPoint(t, R, r, d, A, fz, phase);
+    const hue = (baseHue + (t - tAtCycleStart) * 8) % 360;
+
+    for (let v = 0; v < 4; v++) {
+      const cam = CAM_ANGLES[v];
+      const p = project(p3d, cam.yAngle, cam.flip, viewSize);
+
+      if (p && prevPos[v]) {
+        const ctx = viewCtxs[v];
+        ctx.strokeStyle = hsl(hue, settings.saturation, settings.lightness, 0.9);
+        ctx.lineWidth = settings.lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(prevPos[v].x, prevPos[v].y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        segments[v].push({ x0: prevPos[v].x, y0: prevPos[v].y, x1: p.x, y1: p.y });
+      }
+
+      if (p) prevPos[v] = { x: p.x, y: p.y };
     }
-  </script>
-  <script type="module" src="src/main.js"></script>
+  }
+
+  // --- Check closure (use view 0 as reference) ---
+  if (!erasing && t - tAtCycleStart > MIN_CYCLE_T && prevPos[0]) {
+    const startP3d = compute3DPoint(tAtCycleStart, R, r, d, A, fz, phase);
+    const startP = project(startP3d, CAM_ANGLES[0].yAngle, CAM_ANGLES[0].flip, viewSize);
+    if (startP) {
+      const dist = Math.hypot(prevPos[0].x - startP.x, prevPos[0].y - startP.y);
+      if (dist < 8) {
+        erasing = true;
+        eraseIndex = 0;
+        advanceToNextPattern();
+        tAtCycleStart = t;
+      }
+    }
+  }
+
+  // --- Composite: arrange 4 views in diamond layout ---
+  compCtx.fillStyle = '#000';
+  compCtx.fillRect(0, 0, screenW, screenH);
+
+  const size = Math.min(screenW, screenH);
+  const half = Math.floor(size / 2);
+  const offX = Math.floor((screenW - size) / 2);
+  const offY = Math.floor((screenH - size) / 2);
+
+  if (settings.viewMode === 'peppers') {
+    // Diamond layout: top=back, bottom=front, left=left, right=right
+    compCtx.drawImage(viewCanvases[0], offX + half/2, offY,          half, half); // top
+    compCtx.drawImage(viewCanvases[1], offX + half/2, offY + half,   half, half); // bottom
+    compCtx.drawImage(viewCanvases[2], offX,          offY + half/2, half, half); // left
+    compCtx.drawImage(viewCanvases[3], offX + half,   offY + half/2, half, half); // right
+  } else {
+    // Single view — just show view 1 (front) fullscreen
+    compCtx.drawImage(viewCanvases[1], 0, 0, screenW, screenH);
+  }
+}
+
+// --- Toggle with 'p' key ---
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P') {
+    settings.viewMode = settings.viewMode === 'peppers' ? 'single' : 'peppers';
+    document.getElementById('s-viewMode').value = settings.viewMode;
+    saveSettings();
+  }
+});
+
+// ==============================================
+// Three.js bloom
+// ==============================================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(screenW, screenH);
+renderer.setClearColor(0x000000, 1);
+document.body.appendChild(renderer.domElement);
+
+const threeScene = new THREE.Scene();
+const threeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+const canvasTexture = new THREE.CanvasTexture(compCanvas);
+canvasTexture.minFilter = THREE.LinearFilter;
+canvasTexture.magFilter = THREE.LinearFilter;
+
+const quad = new THREE.Mesh(
+  new THREE.PlaneGeometry(2, 2),
+  new THREE.MeshBasicMaterial({ map: canvasTexture })
+);
+threeScene.add(quad);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(threeScene, threeCamera));
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(screenW, screenH),
+  settings.bloomStrength, settings.bloomRadius, settings.bloomThreshold
+);
+composer.addPass(bloom);
+
+// ==============================================
+// Wire settings to live values
+// ==============================================
+setupPanelToggle();
+
+bindSetting('viewMode', 'viewMode');
+bindSetting('drawSpeed', 'drawSpeed');
+bindSetting('segsPerFrame', 'segsPerFrame');
+bindSetting('eraseSpeed', 'eraseSpeed');
+bindSetting('lerpRate', 'lerpRate');
+bindSetting('lineWidth', 'lineWidth');
+bindSetting('bloomStrength', 'bloomStrength', (v) => { bloom.strength = v; });
+bindSetting('bloomRadius', 'bloomRadius', (v) => { bloom.radius = v; });
+bindSetting('bloomThreshold', 'bloomThreshold', (v) => { bloom.threshold = v; });
+bindSetting('camTilt', 'camTilt', (v) => { CAM_TILT = v; });
+bindSetting('camDist', 'camDist', (v) => { CAM_DIST = v; });
+bindSetting('saturation', 'saturation');
+bindSetting('lightness', 'lightness');
+bindSetting('inputSource', 'inputSource');
+
+// Apply saved bloom settings
+bloom.strength = settings.bloomStrength;
+bloom.radius = settings.bloomRadius;
+bloom.threshold = settings.bloomThreshold;
+CAM_TILT = settings.camTilt;
+CAM_DIST = settings.camDist;
+
+// ==============================================
+// Main loop
+// ==============================================
+function animate() {
+  requestAnimationFrame(animate);
+  updateDrawing();
+  canvasTexture.needsUpdate = true;
+  composer.render();
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  renderer.setSize(screenW, screenH);
+  composer.setSize(screenW, screenH);
+});
+
+animate();
+
+// --- Wake lock: keep screen on ---
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try { await navigator.wakeLock.request('screen'); } catch {}
+  }
+}
+requestWakeLock();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+
+// --- Fullscreen on first tap (mobile) ---
+let fullscreenDone = false;
+document.addEventListener('click', () => {
+  if (!fullscreenDone && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+    fullscreenDone = true;
+  }
+});
+
+// --- Service worker ---
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
 </body>
 </html>
