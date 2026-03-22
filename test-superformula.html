@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; font-family: -apple-system, sans-serif; color: #ccc; }
+    canvas { display: block; position: absolute; top: 0; left: 0; }
+    #controls {
+      position: fixed; right: 0; top: 0; width: 260px; height: 100%;
+      background: rgba(10,10,10,0.9); padding: 16px; overflow-y: auto; z-index: 10;
+    }
+    #controls h2 { font-size: 16px; color: #fff; margin-bottom: 12px; }
+    #controls label { display: block; margin-top: 10px; font-size: 11px; color: #888; text-transform: uppercase; }
+    #controls input[type="range"] { width: 100%; margin-top: 2px; accent-color: #88ccff; }
+    .row { display: flex; justify-content: space-between; }
+    .row .val { color: #88ccff; font-size: 12px; }
+    #presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    #presets button {
+      background: #222; color: #aaa; border: 1px solid #444; padding: 4px 10px;
+      border-radius: 4px; cursor: pointer; font-size: 11px;
+    }
+    #presets button:hover { background: #333; color: #fff; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="controls">
+  <h2>Superformula</h2>
+
+  <label>m (symmetry)</label>
+  <div class="row"><input type="range" id="s-m" min="2" max="12" step="2" value="6"><span class="val" id="v-m">6</span></div>
+
+  <label>n1</label>
+  <div class="row"><input type="range" id="s-n1" min="0.1" max="10" step="0.1" value="0.3"><span class="val" id="v-n1">0.3</span></div>
+
+  <label>n2</label>
+  <div class="row"><input type="range" id="s-n2" min="0.1" max="10" step="0.1" value="0.3"><span class="val" id="v-n2">0.3</span></div>
+
+  <label>n3</label>
+  <div class="row"><input type="range" id="s-n3" min="0.1" max="10" step="0.1" value="0.3"><span class="val" id="v-n3">0.3</span></div>
+
+  <label>a</label>
+  <div class="row"><input type="range" id="s-a" min="0.5" max="2" step="0.05" value="1"><span class="val" id="v-a">1</span></div>
+
+  <label>b</label>
+  <div class="row"><input type="range" id="s-b" min="0.5" max="2" step="0.05" value="1"><span class="val" id="v-b">1</span></div>
+
+  <div id="presets">
+    <button data-p="4,2,2,2,1,1">Circle</button>
+    <button data-p="10,0.3,0.3,0.3,1,1">Star</button>
+    <button data-p="8,0.5,0.5,8,1,1">Flower</button>
+    <button data-p="6,0.3,0.3,0.3,1,1">Triangle</button>
+    <button data-p="4,0.5,1,1,1,1">Blob</button>
+    <button data-p="4,0.5,0.5,0.5,1,1">Diamond</button>
+    <button data-p="6,1,1,1,1,1">Hexagon</button>
+    <button data-p="8,0.2,1.7,1.7,1,1">Gear</button>
+    <button data-p="10,2,7,7,1,1">Petal</button>
+    <button data-p="2,0.5,0.5,0.5,1,1">Lens</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  draw();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// --- Superformula ---
+function superformula(theta, m, n1, n2, n3, a, b) {
+  const t = m * theta / 4;
+  const cosT = Math.cos(t);
+  const sinT = Math.sin(t);
+  const term1 = Math.pow(Math.abs(cosT / a), n2);
+  const term2 = Math.pow(Math.abs(sinT / b), n3);
+  const sum = term1 + term2;
+  if (sum === 0) return 1;
+  return Math.pow(sum, -1 / n1);
+}
+
+function getParams() {
+  return {
+    m: parseFloat(document.getElementById('s-m').value),
+    n1: parseFloat(document.getElementById('s-n1').value),
+    n2: parseFloat(document.getElementById('s-n2').value),
+    n3: parseFloat(document.getElementById('s-n3').value),
+    a: parseFloat(document.getElementById('s-a').value),
+    b: parseFloat(document.getElementById('s-b').value),
+  };
+}
+
+function draw() {
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = (w - 260) / 2; // account for controls panel
+  const cy = h / 2;
+  const scale = Math.min(cx, cy) * 0.6;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, w, h);
+
+  const p = getParams();
+  const steps = 1000;
+
+  // Find max radius for auto-scaling
+  let maxR = 0;
+  for (let i = 0; i <= steps; i++) {
+    const theta = (i / steps) * Math.PI * 2;
+    const r = superformula(theta, p.m, p.n1, p.n2, p.n3, p.a, p.b);
+    if (isFinite(r) && r > maxR) maxR = r;
+  }
+  if (maxR === 0) maxR = 1;
+  const normScale = scale / maxR;
+
+  // Draw shape — compute first point, then loop, then close back to first point exactly
+  const r0 = superformula(0, p.m, p.n1, p.n2, p.n3, p.a, p.b);
+  const x0 = cx + r0 * normScale;
+  const y0 = cy;
+
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  for (let i = 1; i < steps; i++) {
+    const theta = (i / steps) * Math.PI * 2;
+    const r = superformula(theta, p.m, p.n1, p.n2, p.n3, p.a, p.b);
+    if (!isFinite(r)) continue;
+    const x = cx + r * normScale * Math.cos(theta);
+    const y = cy + r * normScale * Math.sin(theta);
+    ctx.lineTo(x, y);
+  }
+  // Close exactly to the first point — no gap
+  ctx.lineTo(x0, y0);
+  ctx.strokeStyle = '#88ccff';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#88ccff';
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Draw center dot
+  ctx.fillStyle = '#335';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// --- Wire sliders ---
+const sliders = ['m', 'n1', 'n2', 'n3', 'a', 'b'];
+for (const id of sliders) {
+  const el = document.getElementById('s-' + id);
+  const valEl = document.getElementById('v-' + id);
+  el.addEventListener('input', () => {
+    valEl.textContent = el.value;
+    draw();
+  });
+}
+
+// --- Wire presets ---
+document.getElementById('presets').addEventListener('click', (e) => {
+  if (!e.target.dataset.p) return;
+  const vals = e.target.dataset.p.split(',').map(Number);
+  const ids = ['m', 'n1', 'n2', 'n3', 'a', 'b'];
+  for (let i = 0; i < ids.length; i++) {
+    document.getElementById('s-' + ids[i]).value = vals[i];
+    document.getElementById('v-' + ids[i]).textContent = vals[i];
+  }
+  draw();
+});
+</script>
+</body>
+</html>
