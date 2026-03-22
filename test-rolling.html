@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; font-family: -apple-system, sans-serif; color: #ccc; }
+    canvas { display: block; position: absolute; top: 0; left: 0; }
+    #controls {
+      position: fixed; right: 0; top: 0; width: 280px; height: 100%;
+      background: rgba(10,10,10,0.9); padding: 16px; overflow-y: auto; z-index: 10;
+    }
+    #controls h2 { font-size: 16px; color: #fff; margin-bottom: 8px; }
+    #controls h3 { font-size: 13px; color: #88ccff; margin: 12px 0 4px; }
+    #controls label { display: block; margin-top: 6px; font-size: 11px; color: #888; text-transform: uppercase; }
+    #controls input[type="range"] { width: 100%; margin-top: 2px; accent-color: #88ccff; }
+    .row { display: flex; justify-content: space-between; }
+    .row .val { color: #88ccff; font-size: 12px; }
+    #presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    #presets button {
+      background: #222; color: #aaa; border: 1px solid #444; padding: 4px 10px;
+      border-radius: 4px; cursor: pointer; font-size: 11px;
+    }
+    #presets button:hover { background: #333; color: #fff; }
+    #controls hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
+    #controls .toggle { display: flex; gap: 8px; margin-top: 4px; }
+    #controls .toggle label { margin: 0; color: #ccc; font-size: 12px; text-transform: none; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="controls">
+  <h2>Shape Rolling</h2>
+
+  <div class="toggle">
+    <input type="checkbox" id="s-showShapes" checked>
+    <label for="s-showShapes">Show guide shapes</label>
+  </div>
+
+  <h3>Shape A (outer)</h3>
+  <label>m</label>
+  <div class="row"><input type="range" id="sA-m" min="2" max="12" step="2" value="4"><span class="val" id="vA-m">4</span></div>
+  <label>n1</label>
+  <div class="row"><input type="range" id="sA-n1" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n1">2</span></div>
+  <label>n2</label>
+  <div class="row"><input type="range" id="sA-n2" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n2">2</span></div>
+  <label>n3</label>
+  <div class="row"><input type="range" id="sA-n3" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n3">2</span></div>
+
+  <h3>Shape B (inner)</h3>
+  <label>m</label>
+  <div class="row"><input type="range" id="sB-m" min="2" max="12" step="2" value="4"><span class="val" id="vB-m">4</span></div>
+  <label>n1</label>
+  <div class="row"><input type="range" id="sB-n1" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n1">2</span></div>
+  <label>n2</label>
+  <div class="row"><input type="range" id="sB-n2" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n2">2</span></div>
+  <label>n3</label>
+  <div class="row"><input type="range" id="sB-n3" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n3">2</span></div>
+
+  <hr>
+  <h3>Spirograph</h3>
+  <label>Size ratio (B / A)</label>
+  <div class="row"><input type="range" id="s-ratio" min="0.1" max="0.8" step="0.01" value="0.35"><span class="val" id="v-ratio">0.35</span></div>
+
+  <label>Pen offset</label>
+  <div class="row"><input type="range" id="s-pen" min="0.1" max="1.5" step="0.01" value="0.7"><span class="val" id="v-pen">0.7</span></div>
+
+  <label>Draw speed</label>
+  <div class="row"><input type="range" id="s-speed" min="0.2" max="3" step="0.1" value="1"><span class="val" id="v-speed">1</span></div>
+
+  <hr>
+  <div id="presets">
+    <button data-p="classic">Classic</button>
+    <button data-p="starflower">Starflower</button>
+    <button data-p="gear">Gear</button>
+    <button data-p="organic">Organic</button>
+    <button data-p="petal">Petal</button>
+    <button data-p="hex">Hexweave</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy, scale;
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+  cx = (W - 280) / 2;
+  cy = H / 2;
+  scale = Math.min(cx, cy) * 0.55;
+  // Reset drawing
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  resetDrawing();
+}
+
+// ==============================================
+// Superformula + arc length (from Task 1 & 2)
+// ==============================================
+function superformula(theta, m, n1, n2, n3) {
+  const t = m * theta / 4;
+  const term1 = Math.pow(Math.abs(Math.cos(t)), n2);
+  const term2 = Math.pow(Math.abs(Math.sin(t)), n3);
+  const sum = term1 + term2;
+  if (sum === 0) return 1;
+  return Math.pow(sum, -1 / n1);
+}
+
+function shapePoint(theta, params) {
+  const r = superformula(theta, params.m, params.n1, params.n2, params.n3);
+  return { x: r * Math.cos(theta), y: r * Math.sin(theta), r };
+}
+
+function computeArcTable(params, numSamples) {
+  const table = [{ theta: 0, arcLen: 0 }];
+  let totalLen = 0;
+  let prev = shapePoint(0, params);
+  for (let i = 1; i <= numSamples; i++) {
+    const theta = (i / numSamples) * Math.PI * 2;
+    const p = shapePoint(theta, params);
+    totalLen += Math.sqrt((p.x - prev.x) ** 2 + (p.y - prev.y) ** 2);
+    table.push({ theta, arcLen: totalLen });
+    prev = p;
+  }
+  return { table, totalLen };
+}
+
+function arcToTheta(table, targetLen) {
+  let lo = 0, hi = table.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (table[mid].arcLen < targetLen) lo = mid;
+    else hi = mid;
+  }
+  const range = table[hi].arcLen - table[lo].arcLen;
+  if (range === 0) return table[lo].theta;
+  const frac = (targetLen - table[lo].arcLen) / range;
+  return table[lo].theta + frac * (table[hi].theta - table[lo].theta);
+}
+
+// ==============================================
+// Rolling simulation
+// ==============================================
+function computeRollingPoint(dist, paramsA, paramsB, arcTableA, arcTableB, sizeRatio, penOffset) {
+  // Where on A are we? (wrap around A's perimeter)
+  const thetaA = arcToTheta(arcTableA.table, dist % arcTableA.totalLen);
+
+  // Contact point on A
+  const pA = shapePoint(thetaA, paramsA);
+
+  // Tangent at contact point (numerical)
+  const dt = 0.001;
+  const pA2 = shapePoint(thetaA + dt, paramsA);
+  let tx = pA2.x - pA.x, ty = pA2.y - pA.y;
+  const tLen = Math.sqrt(tx * tx + ty * ty);
+  if (tLen > 0) { tx /= tLen; ty /= tLen; }
+
+  // Inward normal (perpendicular, pointing toward origin)
+  let nx = ty, ny = -tx;
+  if (nx * pA.x + ny * pA.y > 0) { nx = -nx; ny = -ny; }
+
+  // How much has B rotated? B's perimeter is scaled by sizeRatio.
+  // Arc length on B = dist (same distance traveled), but B's total perimeter is scaled.
+  const bPerimeter = arcTableB.totalLen * sizeRatio;
+  const distOnB = dist % bPerimeter;
+  const thetaB = arcToTheta(arcTableB.table, distOnB / sizeRatio);
+
+  // B's radius at contact angle (scaled)
+  const rB = superformula(thetaB, paramsB.m, paramsB.n1, paramsB.n2, paramsB.n3) * sizeRatio;
+
+  // Center of B: offset from contact along inward normal
+  const centerX = pA.x + nx * rB;
+  const centerY = pA.y + ny * rB;
+
+  // B's rotation angle
+  const rotation = thetaA - thetaB;
+
+  // Pen point
+  const penDist = penOffset * sizeRatio;
+  const penX = centerX + penDist * Math.cos(rotation);
+  const penY = centerY + penDist * Math.sin(rotation);
+
+  return { x: penX, y: penY };
+}
+
+// ==============================================
+// Drawing state
+// ==============================================
+let paramsA = { m: 4, n1: 2, n2: 2, n3: 2 };
+let paramsB = { m: 4, n1: 2, n2: 2, n3: 2 };
+let sizeRatio = 0.35;
+let penOffset = 0.7;
+let drawSpeed = 1;
+
+let arcTableA, arcTableB;
+let dist = 0;
+let prevPenX = null, prevPenY = null;
+let baseHue = Math.random() * 360;
+let showShapes = true;
+
+// Fade-based eraser: after a cycle completes, we overlay a subtle dark wash each frame
+// until the old drawing fades away. New lines draw bright on top.
+let fading = false;
+let fadeFrames = 0;
+const FADE_DURATION = 180; // frames to fully fade (~3 seconds at 60fps)
+let tAtCycleStart = 0;
+const MIN_CYCLE_DIST = 30;
+const MAX_CYCLE_DIST = 500; // safety cap — force transition if pattern never closes
+
+function recomputeTables() {
+  arcTableA = computeArcTable(paramsA, 2000);
+  arcTableB = computeArcTable(paramsB, 2000);
+}
+
+function resetDrawing() {
+  recomputeTables();
+  dist = 0;
+  tAtCycleStart = 0;
+  prevPenX = null;
+  prevPenY = null;
+  fading = false;
+  fadeFrames = 0;
+  baseHue = Math.random() * 360;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+}
+
+function readParams() {
+  paramsA = {
+    m: parseFloat(document.getElementById('sA-m').value),
+    n1: parseFloat(document.getElementById('sA-n1').value),
+    n2: parseFloat(document.getElementById('sA-n2').value),
+    n3: parseFloat(document.getElementById('sA-n3').value),
+  };
+  paramsB = {
+    m: parseFloat(document.getElementById('sB-m').value),
+    n1: parseFloat(document.getElementById('sB-n1').value),
+    n2: parseFloat(document.getElementById('sB-n2').value),
+    n3: parseFloat(document.getElementById('sB-n3').value),
+  };
+  sizeRatio = parseFloat(document.getElementById('s-ratio').value);
+  penOffset = parseFloat(document.getElementById('s-pen').value);
+  drawSpeed = parseFloat(document.getElementById('s-speed').value);
+  showShapes = document.getElementById('s-showShapes').checked;
+}
+
+function drawGuideShapes() {
+  if (!showShapes) return;
+
+  // Find max radius of A for scaling
+  let maxRA = 0;
+  for (let i = 0; i < 500; i++) {
+    const theta = (i / 500) * Math.PI * 2;
+    const r = superformula(theta, paramsA.m, paramsA.n1, paramsA.n2, paramsA.n3);
+    if (isFinite(r) && r > maxRA) maxRA = r;
+  }
+  if (maxRA === 0) maxRA = 1;
+  const guideScale = scale / maxRA;
+
+  // Draw Shape A (faint)
+  ctx.beginPath();
+  for (let i = 0; i <= 500; i++) {
+    const theta = (i / 500) * Math.PI * 2;
+    const p = shapePoint(theta, paramsA);
+    const x = cx + p.x * guideScale;
+    const y = cy + p.y * guideScale;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(136, 204, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function hsl(h, s, l, a) {
+  return `hsla(${h}, ${s}%, ${l}%, ${a})`;
+}
+
+// ==============================================
+// Animation
+// ==============================================
+function animate() {
+  requestAnimationFrame(animate);
+
+  readParams();
+
+  // Recompute arc tables (cheap enough at 2000 samples)
+  recomputeTables();
+
+  // Find max radius for screen scaling
+  let maxRA = 0;
+  for (let i = 0; i < 200; i++) {
+    const r = superformula((i / 200) * Math.PI * 2, paramsA.m, paramsA.n1, paramsA.n2, paramsA.n3);
+    if (isFinite(r) && r > maxRA) maxRA = r;
+  }
+  if (maxRA === 0) maxRA = 1;
+  const screenScale = scale / maxRA;
+
+  // Fade: overlay a subtle dark wash each frame
+  if (fading) {
+    fadeFrames++;
+    // Opacity ramps up slightly over time so fade accelerates
+    const alpha = 0.01 + (fadeFrames / FADE_DURATION) * 0.03;
+    ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(alpha, 0.05)})`;
+    ctx.fillRect(0, 0, W, H);
+
+    if (fadeFrames >= FADE_DURATION) {
+      // Fully clear any remnants
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      fading = false;
+      fadeFrames = 0;
+      drawGuideShapes();
+    }
+  }
+
+  // Draw new points
+  const step = 0.02 * drawSpeed;
+  for (let i = 0; i < 4; i++) {
+    dist += step;
+
+    const pen = computeRollingPoint(dist, paramsA, paramsB, arcTableA, arcTableB, sizeRatio, penOffset);
+    const sx = cx + pen.x * screenScale;
+    const sy = cy + pen.y * screenScale;
+
+    if (prevPenX !== null) {
+      const hue = (baseHue + (dist - tAtCycleStart) * 20) % 360;
+      ctx.strokeStyle = hsl(hue, 80, 60, 0.9);
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(prevPenX, prevPenY);
+      ctx.lineTo(sx, sy);
+      ctx.stroke();
+    }
+
+    prevPenX = sx;
+    prevPenY = sy;
+  }
+
+  // Check closure — start fading when pattern completes
+  if (!fading && dist - tAtCycleStart > MIN_CYCLE_DIST && prevPenX !== null) {
+    const startPen = computeRollingPoint(tAtCycleStart, paramsA, paramsB, arcTableA, arcTableB, sizeRatio, penOffset);
+    const startSx = cx + startPen.x * screenScale;
+    const startSy = cy + startPen.y * screenScale;
+    const d = Math.hypot(prevPenX - startSx, prevPenY - startSy);
+    const cycleLen = dist - tAtCycleStart;
+    if (d < 8 || cycleLen > MAX_CYCLE_DIST) {
+      fading = true;
+      fadeFrames = 0;
+      baseHue = (baseHue + 60 + Math.random() * 60) % 360;
+      tAtCycleStart = dist;
+    }
+  }
+}
+
+// ==============================================
+// Presets
+// ==============================================
+const PRESETS = {
+  classic:    { A: {m:4,n1:2,n2:2,n3:2},     B: {m:4,n1:2,n2:2,n3:2},     ratio: 0.35, pen: 0.7 },
+  starflower: { A: {m:6,n1:0.3,n2:0.3,n3:0.3}, B: {m:4,n1:2,n2:2,n3:2},     ratio: 0.3,  pen: 0.8 },
+  gear:       { A: {m:8,n1:0.2,n2:1.7,n3:1.7}, B: {m:4,n1:2,n2:2,n3:2},     ratio: 0.25, pen: 0.6 },
+  organic:    { A: {m:4,n1:0.5,n2:1,n3:1},     B: {m:6,n1:0.5,n2:0.5,n3:0.5}, ratio: 0.4,  pen: 0.9 },
+  petal:      { A: {m:10,n1:2,n2:7,n3:7},      B: {m:4,n1:2,n2:2,n3:2},      ratio: 0.3,  pen: 0.5 },
+  hex:        { A: {m:6,n1:1,n2:1,n3:1},       B: {m:6,n1:0.3,n2:0.3,n3:0.3}, ratio: 0.35, pen: 0.7 },
+};
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+
+  const setSlider = (id, val) => {
+    document.getElementById(id).value = val;
+    const vid = id.replace('s', 'v');
+    const el = document.getElementById(vid);
+    if (el) el.textContent = val;
+  };
+
+  setSlider('sA-m', p.A.m); setSlider('sA-n1', p.A.n1);
+  setSlider('sA-n2', p.A.n2); setSlider('sA-n3', p.A.n3);
+  setSlider('sB-m', p.B.m); setSlider('sB-n1', p.B.n1);
+  setSlider('sB-n2', p.B.n2); setSlider('sB-n3', p.B.n3);
+  setSlider('s-ratio', p.ratio); setSlider('s-pen', p.pen);
+
+  resetDrawing();
+}
+
+document.getElementById('presets').addEventListener('click', (e) => {
+  if (e.target.dataset.p) applyPreset(e.target.dataset.p);
+});
+
+// Reset drawing when any shape param changes
+for (const id of ['sA-m','sA-n1','sA-n2','sA-n3','sB-m','sB-n1','sB-n2','sB-n3','s-ratio','s-pen']) {
+  const el = document.getElementById(id);
+  const valId = id.replace('s', 'v');
+  const valEl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    if (valEl) valEl.textContent = el.value;
+    resetDrawing();
+  });
+}
+
+// Speed slider doesn't need reset
+document.getElementById('s-speed').addEventListener('input', (e) => {
+  document.getElementById('v-speed').textContent = e.target.value;
+});
+document.getElementById('s-showShapes').addEventListener('change', () => {
+  resetDrawing();
+});
+
+resize();
+window.addEventListener('resize', resize);
+drawGuideShapes();
+animate();
+</script>
+</body>
+</html>
