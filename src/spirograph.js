@@ -24,8 +24,19 @@ export function computePoint2D(t, params) {
 
 export class TrailBuffer {
   constructor(capacity) {
-    this.capacity = capacity;
+    this._capacity = capacity;
     this._data = [];
+  }
+
+  get capacity() {
+    return this._capacity;
+  }
+
+  set capacity(newCapacity) {
+    this._capacity = newCapacity;
+    while (this._data.length > this._capacity) {
+      this._data.shift();
+    }
   }
 
   get length() {
@@ -34,7 +45,7 @@ export class TrailBuffer {
 
   push(point) {
     this._data.push(point);
-    if (this._data.length > this.capacity) {
+    if (this._data.length > this._capacity) {
       this._data.shift();
     }
   }

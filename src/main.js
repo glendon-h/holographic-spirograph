@@ -7,6 +7,7 @@ import {
 } from './renderer.js';
 import { computePoint3D, TrailBuffer } from './spirograph.js';
 import { Morpher } from './morpher.js';
+import { Settings } from './settings.js';
 
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
@@ -21,6 +22,26 @@ scene.add(line);
 const morpher = new Morpher();
 const trail = new TrailBuffer(3000);
 const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
+
+const settings = new Settings();
+
+document.addEventListener('click', () => {
+  settings.toggle();
+});
+
+settings.onChange((key, value) => {
+  switch (key) {
+    case 'bloomIntensity':
+      peppersRenderer.bloomPass.strength = value;
+      break;
+    case 'morphSpeed':
+      morpher.speed = value;
+      break;
+    case 'trailLength':
+      trail.capacity = value;
+      break;
+  }
+});
 
 let t = 0;
 let hue = 0.55; // start with pale cyan
