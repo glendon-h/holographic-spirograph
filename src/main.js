@@ -154,3 +154,16 @@ window.addEventListener('resize', () => {
 });
 
 animate();
+
+// Keep screen awake during display
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      await navigator.wakeLock.request('screen');
+    } catch { /* fallback: do nothing */ }
+  }
+}
+requestWakeLock();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
