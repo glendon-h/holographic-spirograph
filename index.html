@@ -35,6 +35,11 @@
 #settings-panel hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
 #settings-panel h3 { color: #fff; font-size: 14px; margin: 0; }
   </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
   <script type="importmap">
@@ -44,6 +49,11 @@
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
     }
   }
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
   </script>
   <script type="module" src="src/main.js"></script>
 </body>

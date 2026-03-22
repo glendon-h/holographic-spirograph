@@ -10,6 +10,7 @@ import { Morpher } from './morpher.js';
 import { Settings } from './settings.js';
 import { encode } from './encoder.js';
 import { FeedManager } from './feeds.js';
+import { analyzeImageFile } from './image-analyzer.js';
 
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
@@ -27,6 +28,7 @@ const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
 
 const settings = new Settings();
 const feedManager = new FeedManager();
+const curatedItems = [];
 let lastCycleTime = 0;
 
 document.addEventListener('click', () => {
@@ -46,6 +48,16 @@ settings.onChange((key, value) => {
       break;
     case 'inputSource':
       if (value === 'random') morpher.clearAttractor();
+      break;
+    case 'addCuratedItem':
+      curatedItems.push(value);
+      feedManager.setCuratedItems(curatedItems);
+      break;
+    case 'addCuratedImage':
+      analyzeImageFile(value).then(input => {
+        curatedItems.push(input);
+        feedManager.setCuratedItems(curatedItems);
+      });
       break;
   }
 });

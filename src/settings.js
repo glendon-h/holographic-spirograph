@@ -107,6 +107,24 @@ export class Settings {
       <label>Offset Y</label>
       <input type="range" data-key="viewportOffsetY" min="-50" max="50" step="1">
       <span class="range-value" data-for="viewportOffsetY"></span>
+
+      <hr>
+      <h3>Curated Collection</h3>
+      <div id="curated-items"></div>
+
+      <label>Add Text / Name</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="curated-text-input" placeholder="Enter text, name, or place..." style="flex:1;background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+        <select id="curated-text-type" style="background:#222;color:#ccc;border:1px solid #444;padding:6px;border-radius:4px;">
+          <option value="text">Text</option>
+          <option value="name">Name</option>
+          <option value="location">Place</option>
+        </select>
+        <button id="curated-add-text" style="background:#333;color:#ccc;border:1px solid #444;padding:6px 12px;border-radius:4px;cursor:pointer;">Add</button>
+      </div>
+
+      <label>Add Image</label>
+      <input type="file" id="curated-image-input" accept="image/*" multiple style="margin-top:4px;">
     `;
 
     document.body.appendChild(panel);
@@ -138,6 +156,25 @@ export class Settings {
 
     // Click outside panel to close (but not when clicking the panel itself)
     panel.addEventListener('click', (e) => e.stopPropagation());
+
+    const addTextBtn = panel.querySelector('#curated-add-text');
+    addTextBtn.addEventListener('click', () => {
+      const input = panel.querySelector('#curated-text-input');
+      const typeSelect = panel.querySelector('#curated-text-type');
+      const value = input.value.trim();
+      if (!value) return;
+      const item = { type: typeSelect.value, value };
+      this.listeners.forEach(fn => fn('addCuratedItem', item));
+      input.value = '';
+    });
+
+    const imageInput = panel.querySelector('#curated-image-input');
+    imageInput.addEventListener('change', (e) => {
+      for (const file of e.target.files) {
+        this.listeners.forEach(fn => fn('addCuratedImage', file));
+      }
+      imageInput.value = '';
+    });
   }
 
   toggle() {
