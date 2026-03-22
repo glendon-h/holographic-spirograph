@@ -8,6 +8,8 @@ import {
 import { computePoint3D, computePoint2D, TrailBuffer, rotatePoint2DIn3D } from './spirograph.js';
 import { Morpher } from './morpher.js';
 import { Settings } from './settings.js';
+import { encode } from './encoder.js';
+import { FeedManager } from './feeds.js';
 
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
@@ -24,6 +26,8 @@ const trail = new TrailBuffer(3000);
 const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
 
 const settings = new Settings();
+const feedManager = new FeedManager();
+let lastCycleTime = 0;
 
 document.addEventListener('click', () => {
   settings.toggle();
@@ -40,6 +44,9 @@ settings.onChange((key, value) => {
     case 'trailLength':
       trail.capacity = value;
       break;
+    case 'inputSource':
+      if (value === 'random') morpher.clearAttractor();
+      break;
   }
 });
 
@@ -48,10 +55,34 @@ let hue = 0.55; // start with pale cyan
 const POINTS_PER_FRAME = 10;
 const T_STEP = 0.02;
 
+async function maybeAdvanceInput(currentTime) {
+  const mode = settings.get('inputSource');
+  if (mode === 'random') {
+    morpher.clearAttractor();
+    return;
+  }
+
+  const interval = settings.get('cycleInterval') * 1000;
+  if (currentTime - lastCycleTime < interval) return;
+  lastCycleTime = currentTime;
+
+  const input = await feedManager.getNext(mode);
+  if (input) {
+    const attractor = encode(input);
+    morpher.setAttractor(attractor);
+  }
+}
+
+let lastFrameTime = performance.now();
+
 function animate() {
   requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = (now - lastFrameTime) / 1000;
+  lastFrameTime = now;
 
-  morpher.update(1 / 60);
+  morpher.update(dt);
+  maybeAdvanceInput(now);
   const params = morpher.getParams();
 
   for (let i = 0; i < POINTS_PER_FRAME; i++) {
