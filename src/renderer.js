@@ -124,3 +124,86 @@ export function createPyramidCameras(distance = 12) {
 
   return cameras;
 }
+
+/**
+ * PeppersGhostRenderer — renders all 4 viewports to an offscreen render target,
+ * then applies UnrealBloom via EffectComposer on a fullscreen quad that reads
+ * from that target, producing a bloom-composited final image.
+ */
+export class PeppersGhostRenderer {
+  constructor(webglRenderer, scene, cameras) {
+    this.renderer = webglRenderer;
+    this.scene = scene;
+    this.cameras = cameras;
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const pixelRatio = Math.min(window.devicePixelRatio, 2);
+
+    // Render target for multi-viewport compositing
+    this.renderTarget = new THREE.WebGLRenderTarget(
+      w * pixelRatio, h * pixelRatio,
+      { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }
+    );
+
+    // Fullscreen quad scene to display the render target
+    this.quadScene = new THREE.Scene();
+    this.quadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const quadGeom = new THREE.PlaneGeometry(2, 2);
+    const quadMat = new THREE.MeshBasicMaterial({ map: this.renderTarget.texture });
+    this.quadMesh = new THREE.Mesh(quadGeom, quadMat);
+    this.quadScene.add(this.quadMesh);
+
+    // Bloom composer processes the fullscreen quad
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.quadScene, this.quadCamera));
+
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(Math.floor(w / 2), Math.floor(h / 2)),
+      1.5, 0.4, 0.85
+    );
+    this.composer.addPass(this.bloomPass);
+  }
+
+  render() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const viewports = computeViewports(w, h);
+
+    // Step 1: Render all 4 viewports to the render target
+    this.renderer.setRenderTarget(this.renderTarget);
+    this.renderer.clear();
+    this.renderer.setScissorTest(true);
+
+    for (const vp of viewports) {
+      const cam = this.cameras[vp.cameraIndex];
+      cam.aspect = vp.width / vp.height;
+      cam.updateProjectionMatrix();
+
+      // Scale viewport coords to render target pixel size
+      const pixelRatio = this.renderer.getPixelRatio();
+      this.renderer.setViewport(
+        vp.x * pixelRatio, vp.y * pixelRatio,
+        vp.width * pixelRatio, vp.height * pixelRatio
+      );
+      this.renderer.setScissor(
+        vp.x * pixelRatio, vp.y * pixelRatio,
+        vp.width * pixelRatio, vp.height * pixelRatio
+      );
+      this.renderer.render(this.scene, cam);
+    }
+
+    this.renderer.setScissorTest(false);
+    this.renderer.setRenderTarget(null);
+
+    // Step 2: Bloom pass on the composited image via fullscreen quad
+    this.composer.render();
+  }
+
+  setSize(w, h) {
+    const pixelRatio = this.renderer.getPixelRatio();
+    this.renderTarget.setSize(w * pixelRatio, h * pixelRatio);
+    this.composer.setSize(w, h);
+    this.bloomPass.resolution.set(Math.floor(w / 2), Math.floor(h / 2));
+  }
+}

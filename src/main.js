@@ -2,7 +2,7 @@
 import {
   createRenderer, createScene,
   createSpirographLine, updateLinePositions,
-  computeViewports, createPyramidCameras,
+  createPyramidCameras, PeppersGhostRenderer,
 } from './renderer.js';
 import { computePoint3D, TrailBuffer } from './spirograph.js';
 import { Morpher } from './morpher.js';
@@ -19,6 +19,7 @@ scene.add(line);
 
 const morpher = new Morpher();
 const trail = new TrailBuffer(3000);
+const peppersRenderer = new PeppersGhostRenderer(renderer, scene, cameras);
 
 let t = 0;
 const POINTS_PER_FRAME = 10;
@@ -40,29 +41,15 @@ function animate() {
     line.computeLineDistances();
   }
 
-  // Render 4 viewports
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const viewports = computeViewports(w, h);
-
-  renderer.setScissorTest(true);
-  renderer.clear();
-
-  for (const vp of viewports) {
-    const cam = cameras[vp.cameraIndex];
-    cam.aspect = vp.width / vp.height;
-    cam.updateProjectionMatrix();
-    renderer.setViewport(vp.x, vp.y, vp.width, vp.height);
-    renderer.setScissor(vp.x, vp.y, vp.width, vp.height);
-    renderer.render(scene, cam);
-  }
-
-  renderer.setScissorTest(false);
+  peppersRenderer.render();
 }
 
 window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  material.resolution.set(window.innerWidth, window.innerHeight);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setSize(w, h);
+  peppersRenderer.setSize(w, h);
+  material.resolution.set(w, h);
 });
 
 animate();
