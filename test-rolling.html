@@ -34,6 +34,10 @@
   <h2>Shape Rolling</h2>
 
   <div class="toggle">
+    <input type="checkbox" id="s-auto" checked>
+    <label for="s-auto">Auto-cycle presets</label>
+  </div>
+  <div class="toggle">
     <input type="checkbox" id="s-showShapes" checked>
     <label for="s-showShapes">Show guide shapes</label>
   </div>
@@ -310,14 +314,66 @@ function computeRollingPoint(dist, shapeA, shapeB, arcTableA, arcTableB, sizeRat
 }
 
 // ==============================================
+// Unified shape representation for morphing
+// Everything gets converted to Fourier coefficients so we can lerp smoothly.
+// ==============================================
+function shapeToCoeffs(shapeDesc) {
+  if (shapeDesc.type === 'fourier') {
+    return getFourierCoeffs(shapeDesc.name);
+  }
+  // Superformula → sample it and fit Fourier
+  const { m, n1, n2, n3 } = shapeDesc;
+  const fn = (t) => {
+    const r = superformula(t, m, n1, n2, n3);
+    return { x: r * Math.cos(t), y: r * Math.sin(t) };
+  };
+  return fitFourier(fn, FOURIER_TERMS);
+}
+
+function lerpCoeffs(a, b, t) {
+  const result = [];
+  result.dcX = (a.dcX || 0) * (1 - t) + (b.dcX || 0) * t;
+  result.dcY = (a.dcY || 0) * (1 - t) + (b.dcY || 0) * t;
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const ac = a[i] || { cx: 0, sx: 0, cy: 0, sy: 0 };
+    const bc = b[i] || { cx: 0, sx: 0, cy: 0, sy: 0 };
+    result.push({
+      cx: ac.cx * (1 - t) + bc.cx * t,
+      sx: ac.sx * (1 - t) + bc.sx * t,
+      cy: ac.cy * (1 - t) + bc.cy * t,
+      sy: ac.sy * (1 - t) + bc.sy * t,
+    });
+  }
+  return result;
+}
+
+function makeShapeFromCoeffs(coeffs) {
+  return {
+    type: 'coeffs',
+    getPoint(theta) { return fourierPoint(theta, coeffs); },
+    getPolarRadius(theta) {
+      const p = fourierPoint(theta, coeffs);
+      return Math.sqrt(p.x * p.x + p.y * p.y);
+    },
+    coeffs,
+  };
+}
+
+// ==============================================
 // Drawing state
 // ==============================================
-let shapeA = makeSuperShape(4, 2, 2, 2);
-let shapeB = makeSuperShape(4, 2, 2, 2);
+let shapeA, shapeB;
 let sizeRatio = 0.35;
 let penOffset = 0.7;
 let drawSpeed = 1;
 let showShapes = true;
+
+// Morphing state
+let currentCoeffsA, currentCoeffsB, currentRatio, currentPen;
+let targetCoeffsA, targetCoeffsB, targetRatio, targetPen;
+const LERP_RATE = 0.003;
+let autoMode = false; // when true, auto-cycles through presets
 
 let arcTableA, arcTableB;
 let dist = 0;
@@ -331,13 +387,50 @@ let tAtCycleStart = 0;
 const MIN_CYCLE_DIST = 30;
 const MAX_CYCLE_DIST = 500;
 
-function recomputeTables() {
+function initFromPreset(presetName) {
+  const p = PRESETS[presetName];
+  currentCoeffsA = shapeToCoeffs(p.A);
+  currentCoeffsB = shapeToCoeffs(p.B);
+  currentRatio = p.ratio;
+  currentPen = p.pen;
+  targetCoeffsA = currentCoeffsA;
+  targetCoeffsB = currentCoeffsB;
+  targetRatio = currentRatio;
+  targetPen = currentPen;
+  rebuildShapes();
+}
+
+function setTarget(presetName) {
+  const p = PRESETS[presetName];
+  targetCoeffsA = shapeToCoeffs(p.A);
+  targetCoeffsB = shapeToCoeffs(p.B);
+  targetRatio = p.ratio;
+  targetPen = p.pen;
+}
+
+function pickRandomPreset() {
+  const names = Object.keys(PRESETS);
+  return names[Math.floor(Math.random() * names.length)];
+}
+
+function rebuildShapes() {
+  shapeA = makeShapeFromCoeffs(currentCoeffsA);
+  shapeB = makeShapeFromCoeffs(currentCoeffsB);
+  sizeRatio = currentRatio;
+  penOffset = currentPen;
   arcTableA = computeArcTable(shapeA, 2000);
   arcTableB = computeArcTable(shapeB, 2000);
 }
 
+function stepMorph() {
+  currentCoeffsA = lerpCoeffs(currentCoeffsA, targetCoeffsA, LERP_RATE);
+  currentCoeffsB = lerpCoeffs(currentCoeffsB, targetCoeffsB, LERP_RATE);
+  currentRatio += (targetRatio - currentRatio) * LERP_RATE;
+  currentPen += (targetPen - currentPen) * LERP_RATE;
+  rebuildShapes();
+}
+
 function resetDrawing() {
-  recomputeTables();
   dist = 0;
   tAtCycleStart = 0;
   prevPenX = null;
@@ -383,35 +476,37 @@ function drawGuideShapes() {
 function hsl(h, s, l, a) { return `hsla(${h}, ${s}%, ${l}%, ${a})`; }
 
 // ==============================================
-// Read UI state
+// Read UI state and apply as immediate target
 // ==============================================
-function readShapes() {
-  const typeA = document.getElementById('sA-type').value;
-  if (typeA === 'super') {
-    shapeA = makeSuperShape(
-      parseFloat(document.getElementById('sA-m').value),
-      parseFloat(document.getElementById('sA-n1').value),
-      parseFloat(document.getElementById('sA-n2').value),
-      parseFloat(document.getElementById('sA-n3').value),
-    );
-  } else {
-    shapeA = makeFourierShape(document.getElementById('sA-fshape').value);
+function getShapeDescFromUI(which) {
+  const type = document.getElementById('s' + which + '-type').value;
+  if (type === 'super') {
+    return {
+      type: 'super',
+      m: parseFloat(document.getElementById('s' + which + '-m').value),
+      n1: parseFloat(document.getElementById('s' + which + '-n1').value),
+      n2: parseFloat(document.getElementById('s' + which + '-n2').value),
+      n3: parseFloat(document.getElementById('s' + which + '-n3').value),
+    };
   }
+  return { type: 'fourier', name: document.getElementById('s' + which + '-fshape').value };
+}
 
-  const typeB = document.getElementById('sB-type').value;
-  if (typeB === 'super') {
-    shapeB = makeSuperShape(
-      parseFloat(document.getElementById('sB-m').value),
-      parseFloat(document.getElementById('sB-n1').value),
-      parseFloat(document.getElementById('sB-n2').value),
-      parseFloat(document.getElementById('sB-n3').value),
-    );
-  } else {
-    shapeB = makeFourierShape(document.getElementById('sB-fshape').value);
-  }
-
-  sizeRatio = parseFloat(document.getElementById('s-ratio').value);
-  penOffset = parseFloat(document.getElementById('s-pen').value);
+function applyFromSliders() {
+  autoMode = false;
+  document.getElementById('s-auto').checked = false;
+  const descA = getShapeDescFromUI('A');
+  const descB = getShapeDescFromUI('B');
+  targetCoeffsA = shapeToCoeffs(descA);
+  targetCoeffsB = shapeToCoeffs(descB);
+  targetRatio = parseFloat(document.getElementById('s-ratio').value);
+  targetPen = parseFloat(document.getElementById('s-pen').value);
+  // Also snap current immediately for slider changes
+  currentCoeffsA = targetCoeffsA;
+  currentCoeffsB = targetCoeffsB;
+  currentRatio = targetRatio;
+  currentPen = targetPen;
+  rebuildShapes();
   drawSpeed = parseFloat(document.getElementById('s-speed').value);
   showShapes = document.getElementById('s-showShapes').checked;
 }
@@ -421,6 +516,9 @@ function readShapes() {
 // ==============================================
 function animate() {
   requestAnimationFrame(animate);
+
+  // Morph toward target each frame
+  stepMorph();
 
   const maxRA = getMaxRadius(shapeA);
   const screenScale = viewScale / maxRA;
@@ -474,6 +572,11 @@ function animate() {
       fadeFrames = 0;
       baseHue = (baseHue + 60 + Math.random() * 60) % 360;
       tAtCycleStart = dist;
+
+      // Auto-cycle: pick next random preset as target
+      if (autoMode) {
+        setTarget(pickRandomPreset());
+      }
     }
   }
 }
@@ -493,38 +596,16 @@ const PRESETS = {
 };
 
 function applyPreset(name) {
-  const p = PRESETS[name];
-  if (!p) return;
-
-  // Set Shape A
-  document.getElementById('sA-type').value = p.A.type === 'super' ? 'super' : 'fourier';
-  toggleShapeControls('A');
-  if (p.A.type === 'super') {
-    document.getElementById('sA-m').value = p.A.m; document.getElementById('vA-m').textContent = p.A.m;
-    document.getElementById('sA-n1').value = p.A.n1; document.getElementById('vA-n1').textContent = p.A.n1;
-    document.getElementById('sA-n2').value = p.A.n2; document.getElementById('vA-n2').textContent = p.A.n2;
-    document.getElementById('sA-n3').value = p.A.n3; document.getElementById('vA-n3').textContent = p.A.n3;
-  } else {
-    document.getElementById('sA-fshape').value = p.A.name;
-  }
-
-  // Set Shape B
-  document.getElementById('sB-type').value = p.B.type === 'super' ? 'super' : 'fourier';
-  toggleShapeControls('B');
-  if (p.B.type === 'super') {
-    document.getElementById('sB-m').value = p.B.m; document.getElementById('vB-m').textContent = p.B.m;
-    document.getElementById('sB-n1').value = p.B.n1; document.getElementById('vB-n1').textContent = p.B.n1;
-    document.getElementById('sB-n2').value = p.B.n2; document.getElementById('vB-n2').textContent = p.B.n2;
-    document.getElementById('sB-n3').value = p.B.n3; document.getElementById('vB-n3').textContent = p.B.n3;
-  } else {
-    document.getElementById('sB-fshape').value = p.B.name;
-  }
-
-  document.getElementById('s-ratio').value = p.ratio; document.getElementById('v-ratio').textContent = p.ratio;
-  document.getElementById('s-pen').value = p.pen; document.getElementById('v-pen').textContent = p.pen;
-
-  readShapes();
+  if (!PRESETS[name]) return;
+  autoMode = false;
+  document.getElementById('s-auto').checked = false;
+  initFromPreset(name);
   resetDrawing();
+}
+
+function applyPresetAsTarget(name) {
+  if (!PRESETS[name]) return;
+  setTarget(name);
 }
 
 function toggleShapeControls(which) {
@@ -544,12 +625,11 @@ document.getElementById('presets').addEventListener('click', (e) => {
 for (const which of ['A', 'B']) {
   document.getElementById('s' + which + '-type').addEventListener('change', () => {
     toggleShapeControls(which);
-    readShapes();
+    applyFromSliders();
     resetDrawing();
   });
-  // Fourier shape selector
   document.getElementById('s' + which + '-fshape').addEventListener('change', () => {
-    readShapes();
+    applyFromSliders();
     resetDrawing();
   });
 }
@@ -561,7 +641,7 @@ for (const id of ['sA-m','sA-n1','sA-n2','sA-n3','sB-m','sB-n1','sB-n2','sB-n3',
   const valEl = document.getElementById(valId);
   el.addEventListener('input', () => {
     if (valEl) valEl.textContent = el.value;
-    readShapes();
+    applyFromSliders();
     resetDrawing();
   });
 }
@@ -576,11 +656,18 @@ document.getElementById('s-showShapes').addEventListener('change', () => {
   resetDrawing();
 });
 
+document.getElementById('s-auto').addEventListener('change', (e) => {
+  autoMode = e.target.checked;
+  if (autoMode) {
+    setTarget(pickRandomPreset());
+  }
+});
+
+// Init — must set shapes before first resize (which calls resetDrawing)
+autoMode = true;
+initFromPreset(pickRandomPreset());
 resize();
 window.addEventListener('resize', resize);
-readShapes();
-recomputeTables();
-drawGuideShapes();
 animate();
 </script>
 </body>
