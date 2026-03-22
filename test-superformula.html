@@ -147,6 +147,73 @@ function draw() {
   ctx.beginPath();
   ctx.arc(cx, cy, 3, 0, Math.PI * 2);
   ctx.fill();
+
+  // --- Arc length sampling visualization ---
+  const arcTable = computeArcLengthTable(p, 2000);
+  const numDots = 40;
+
+  // Green dots: equal arc-length spacing (should be uniform around the perimeter)
+  for (let i = 0; i < numDots; i++) {
+    const targetLen = (i / numDots) * arcTable.totalLen;
+    const theta = arcLengthToTheta(arcTable.table, targetLen);
+    const r = superformula(theta, p.m, p.n1, p.n2, p.n3, p.a, p.b);
+    if (!isFinite(r)) continue;
+    const x = cx + r * normScale * Math.cos(theta);
+    const y = cy + r * normScale * Math.sin(theta);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Red dots: equal angle spacing (bunched at high curvature)
+  for (let i = 0; i < numDots; i++) {
+    const theta = (i / numDots) * Math.PI * 2;
+    const r = superformula(theta, p.m, p.n1, p.n2, p.n3, p.a, p.b);
+    if (!isFinite(r)) continue;
+    const x = cx + r * normScale * Math.cos(theta);
+    const y = cy + r * normScale * Math.sin(theta);
+    ctx.fillStyle = '#f00';
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// --- Arc length parameterization ---
+function computeArcLengthTable(params, numSamples) {
+  const { m, n1, n2, n3, a, b } = params;
+  const table = [{ theta: 0, arcLen: 0 }];
+  let totalLen = 0;
+
+  const r0 = superformula(0, m, n1, n2, n3, a, b);
+  let prevPx = r0, prevPy = 0;
+
+  for (let i = 1; i <= numSamples; i++) {
+    const theta = (i / numSamples) * Math.PI * 2;
+    const r = superformula(theta, m, n1, n2, n3, a, b);
+    if (!isFinite(r)) continue;
+    const px = r * Math.cos(theta);
+    const py = r * Math.sin(theta);
+    totalLen += Math.sqrt((px - prevPx) ** 2 + (py - prevPy) ** 2);
+    table.push({ theta, arcLen: totalLen });
+    prevPx = px;
+    prevPy = py;
+  }
+  return { table, totalLen };
+}
+
+function arcLengthToTheta(table, targetLen) {
+  let lo = 0, hi = table.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (table[mid].arcLen < targetLen) lo = mid;
+    else hi = mid;
+  }
+  const range = table[hi].arcLen - table[lo].arcLen;
+  if (range === 0) return table[lo].theta;
+  const frac = (targetLen - table[lo].arcLen) / range;
+  return table[lo].theta + frac * (table[hi].theta - table[lo].theta);
 }
 
 // --- Wire sliders ---
