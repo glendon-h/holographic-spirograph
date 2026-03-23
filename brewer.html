@@ -10,21 +10,27 @@
     .layout { display: flex; height: 100vh; }
 
     #main-viz { flex: 1; display: flex; flex-direction: column; }
-    #top-row { display: flex; height: 60%; }
-    #bottom-row { display: flex; height: 40%; }
+    #top-row { display: flex; height: 55%; }
+    #bottom-row { display: flex; height: 45%; }
 
     .viz-cell { position: relative; border: 1px solid #1a1a1a; }
     .viz-cell canvas { width: 100%; height: 100%; }
     .viz-label { position: absolute; top: 6px; left: 8px; font-size: 11px; color: #555; pointer-events: none; z-index: 2; }
 
     #cell-sim { flex: 1; }
-    #cell-result { flex: 1; }
-    #cell-shapes { width: 160px; display: flex; flex-direction: column; }
+    #cell-result-wrap { flex: 1; }
+    #cell-shapes { width: 130px; display: flex; flex-direction: column; }
     #cell-shapes .shape-thumb { flex: 1; position: relative; border-bottom: 1px solid #1a1a1a; }
     #cell-shapes .shape-thumb canvas { width: 100%; height: 100%; }
     #cell-shapes .shape-thumb .viz-label { font-size: 10px; }
 
     #cell-math { flex: 1; padding: 14px; overflow-y: auto; background: #0d0d0d; border-top: 1px solid #1a1a1a; }
+    #legend { width: 220px; padding: 14px; background: #0d0d0d; border-top: 1px solid #1a1a1a; border-left: 1px solid #1a1a1a; overflow-y: auto; }
+    #legend h4 { color: #fff; font-size: 12px; margin: 0 0 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 11px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-line { width: 20px; height: 2px; flex-shrink: 0; border-radius: 1px; }
+    .legend-desc { color: #999; line-height: 1.4; }
     #cell-math .eq { font-family: 'Courier New', monospace; font-size: 12px; color: #8ac; line-height: 1.8; margin: 4px 0; }
     #cell-math .eq .val { color: #fc8; }
     #cell-math .eq .label { color: #666; font-size: 10px; }
@@ -61,6 +67,28 @@
     </div>
     <div id="bottom-row">
       <div id="cell-math"></div>
+      <div id="legend">
+        <h4>Legend</h4>
+
+        <div class="legend-item"><div class="legend-line" style="background:#88ccff;"></div><span class="legend-desc"><b>Shape A</b> — outer fixed shape. The track that B rolls inside.</span></div>
+
+        <div class="legend-item"><div class="legend-line" style="background:#ff88cc;"></div><span class="legend-desc"><b>Shape B</b> — inner rolling shape. Rolls along the inside of A without slipping.</span></div>
+
+        <div class="legend-item"><div class="legend-dot" style="background:#ff0;"></div><span class="legend-desc"><b>Contact point</b> — where B touches A. Moves along A's perimeter.</span></div>
+
+        <div class="legend-item"><div class="legend-dot" style="background:#555;"></div><span class="legend-desc"><b>Center of B</b> — offset inward from the contact point by B's local radius.</span></div>
+
+        <div class="legend-item"><div class="legend-line" style="background:#0ff; opacity:0.4;"></div><span class="legend-desc"><b>Pen arm</b> — line from B's center to the pen tip. Length = pen offset × size ratio.</span></div>
+
+        <div class="legend-item"><div class="legend-dot" style="background:#0ff;"></div><span class="legend-desc"><b>Pen point</b> — the tip that draws the spirograph. Attached to B, rotates as B rolls.</span></div>
+
+        <div class="legend-item"><div class="legend-line" style="background:hsl(200,80%,60%);"></div><span class="legend-desc"><b>Trace</b> — the path drawn by the pen point. This is the spirograph.</span></div>
+
+        <hr style="border:none;border-top:1px solid #222;margin:12px 0;">
+        <div style="font-size:10px;color:#555;line-height:1.5;">
+          The spirograph is produced by the <b>rolling constraint</b>: B rolls along A's perimeter with no slipping. The distance traveled on A equals the distance traveled on B. The pen point is fixed to B's body, so as B rotates, the pen traces a complex curve.
+        </div>
+      </div>
     </div>
   </div>
   <div id="controls">
