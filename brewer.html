@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Spirograph Brewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; color: #ccc; font-family: -apple-system, sans-serif; overflow: hidden; }
+    .panel { display: flex; height: 100vh; }
+    #viz { flex: 1; display: flex; flex-wrap: wrap; }
+    .viz-cell { width: 50%; height: 50%; position: relative; border: 1px solid #1a1a1a; }
+    .viz-cell canvas { width: 100%; height: 100%; }
+    .viz-label { position: absolute; top: 6px; left: 8px; font-size: 11px; color: #666; pointer-events: none; }
+    #controls {
+      width: 300px; min-width: 300px; background: #111; padding: 16px; overflow-y: auto;
+      border-left: 1px solid #222;
+    }
+    #controls h2 { font-size: 16px; color: #fff; margin-bottom: 10px; }
+    #controls h3 { font-size: 13px; color: #88ccff; margin: 12px 0 4px; }
+    #controls label { display: block; margin-top: 6px; font-size: 11px; color: #888; text-transform: uppercase; }
+    #controls select { width: 100%; margin-top: 4px; background: #222; color: #ccc; border: 1px solid #444; padding: 4px; border-radius: 4px; font-size: 12px; }
+    #controls input[type="range"] { width: 100%; margin-top: 2px; accent-color: #88ccff; }
+    .row { display: flex; justify-content: space-between; }
+    .row .val { color: #88ccff; font-size: 12px; }
+    #controls hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
+    #info { font-size: 11px; color: #555; line-height: 1.6; margin-top: 10px; }
+    .toggle { display: flex; gap: 8px; margin-top: 4px; }
+    .toggle label { margin: 0; color: #ccc; font-size: 12px; text-transform: none; }
+  </style>
+</head>
+<body>
+<div class="panel">
+  <div id="viz">
+    <div class="viz-cell"><canvas id="cA"></canvas><span class="viz-label">Shape A (outer)</span></div>
+    <div class="viz-cell"><canvas id="cB"></canvas><span class="viz-label">Shape B (inner)</span></div>
+    <div class="viz-cell"><canvas id="cRoll"></canvas><span class="viz-label">Rolling Simulation</span></div>
+    <div class="viz-cell"><canvas id="cResult"></canvas><span class="viz-label">Result</span></div>
+  </div>
+  <div id="controls">
+    <h2>Spirograph Brewer</h2>
+
+    <div class="toggle">
+      <input type="checkbox" id="s-animate" checked>
+      <label for="s-animate">Animate</label>
+    </div>
+
+    <h3>Shape A (outer)</h3>
+    <label>Type</label>
+    <select id="sA-type">
+      <option value="super">Superformula</option>
+      <option value="fourier">Fourier Freeform</option>
+    </select>
+    <div id="sA-super">
+      <label>m</label>
+      <div class="row"><input type="range" id="sA-m" min="2" max="12" step="2" value="4"><span class="val" id="vA-m">4</span></div>
+      <label>n1</label>
+      <div class="row"><input type="range" id="sA-n1" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n1">2</span></div>
+      <label>n2</label>
+      <div class="row"><input type="range" id="sA-n2" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n2">2</span></div>
+      <label>n3</label>
+      <div class="row"><input type="range" id="sA-n3" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vA-n3">2</span></div>
+    </div>
+    <div id="sA-fourier" style="display:none;">
+      <label>Shape</label>
+      <select id="sA-fshape">
+        <option value="circle">Circle</option><option value="heart">Heart</option>
+        <option value="trefoil">Trefoil</option><option value="starfish">Starfish</option>
+        <option value="blob">Blob</option><option value="figure8">Figure-8</option>
+        <option value="leaf">Leaf</option><option value="butterfly">Butterfly</option>
+      </select>
+    </div>
+
+    <h3>Shape B (inner)</h3>
+    <label>Type</label>
+    <select id="sB-type">
+      <option value="super">Superformula</option>
+      <option value="fourier">Fourier Freeform</option>
+    </select>
+    <div id="sB-super">
+      <label>m</label>
+      <div class="row"><input type="range" id="sB-m" min="2" max="12" step="2" value="4"><span class="val" id="vB-m">4</span></div>
+      <label>n1</label>
+      <div class="row"><input type="range" id="sB-n1" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n1">2</span></div>
+      <label>n2</label>
+      <div class="row"><input type="range" id="sB-n2" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n2">2</span></div>
+      <label>n3</label>
+      <div class="row"><input type="range" id="sB-n3" min="0.1" max="10" step="0.1" value="2"><span class="val" id="vB-n3">2</span></div>
+    </div>
+    <div id="sB-fourier" style="display:none;">
+      <label>Shape</label>
+      <select id="sB-fshape">
+        <option value="circle">Circle</option><option value="heart">Heart</option>
+        <option value="trefoil">Trefoil</option><option value="starfish">Starfish</option>
+        <option value="blob">Blob</option><option value="figure8">Figure-8</option>
+        <option value="leaf">Leaf</option><option value="butterfly">Butterfly</option>
+      </select>
+    </div>
+
+    <hr>
+    <h3>Rolling</h3>
+    <label>Size ratio (B / A)</label>
+    <div class="row"><input type="range" id="s-ratio" min="0.1" max="0.8" step="0.01" value="0.35"><span class="val" id="v-ratio">0.35</span></div>
+    <label>Pen offset</label>
+    <div class="row"><input type="range" id="s-pen" min="0.1" max="1.5" step="0.01" value="0.7"><span class="val" id="v-pen">0.7</span></div>
+    <label>Speed</label>
+    <div class="row"><input type="range" id="s-speed" min="0.005" max="0.05" step="0.001" value="0.02"><span class="val" id="v-speed">0.02</span></div>
+    <label>Hue</label>
+    <div class="row"><input type="range" id="s-hue" min="0" max="360" step="1" value="200"><span class="val" id="v-hue">200</span></div>
+
+    <div id="info"></div>
+  </div>
+</div>
+
+<script>
+// ==============================================
+// Canvases
+// ==============================================
+const cA = document.getElementById('cA');
+const cB = document.getElementById('cB');
+const cRoll = document.getElementById('cRoll');
+const cResult = document.getElementById('cResult');
+const ctxA = cA.getContext('2d');
+const ctxB = cB.getContext('2d');
+const ctxRoll = cRoll.getContext('2d');
+const ctxResult = cResult.getContext('2d');
+
+function resizeCanvases() {
+  for (const c of [cA, cB, cRoll, cResult]) {
+    const rect = c.parentElement.getBoundingClientRect();
+    c.width = rect.width * devicePixelRatio;
+    c.height = rect.height * devicePixelRatio;
+    c.getContext('2d').setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+}
+
+// ==============================================
+// Shape math (same as main app)
+// ==============================================
+function superformula(theta, m, n1, n2, n3) {
+  const t = m * theta / 4;
+  const term1 = Math.pow(Math.abs(Math.cos(t)), n2);
+  const term2 = Math.pow(Math.abs(Math.sin(t)), n3);
+  const sum = term1 + term2;
+  if (sum === 0) return 1;
+  return Math.pow(sum, -1 / n1);
+}
+
+const FOURIER_TERMS = 12;
+const FOURIER_SHAPES = {
+  circle: (t) => ({ x: Math.cos(t), y: Math.sin(t) }),
+  heart: (t) => ({ x: 16*Math.pow(Math.sin(t),3)/17, y: -(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/17 }),
+  trefoil: (t) => { const r=1+0.5*Math.cos(3*t); return {x:r*Math.cos(t),y:r*Math.sin(t)}; },
+  starfish: (t) => { const r=1+0.4*Math.cos(5*t); return {x:r*Math.cos(t),y:r*Math.sin(t)}; },
+  blob: (t) => { const r=1+0.3*Math.sin(2*t+0.5)+0.2*Math.cos(3*t+1)+0.15*Math.sin(5*t+2); return {x:r*Math.cos(t),y:r*Math.sin(t)}; },
+  figure8: (t) => ({ x: Math.sin(t), y: Math.sin(2*t)*0.6 }),
+  leaf: (t) => { const r=0.5*(1+0.9*Math.cos(t))*(1+0.1*Math.cos(4*t+0.5)); return {x:r*Math.cos(t),y:r*Math.sin(t)*1.3}; },
+  butterfly: (t) => { const r=Math.exp(Math.sin(t))-2*Math.cos(4*t)+Math.pow(Math.abs(Math.sin((2*t-Math.PI)/24)),5); return {x:r*Math.cos(t)*0.25,y:r*Math.sin(t)*0.25}; },
+};
+
+function fitFourier(shapeFn, nTerms) {
+  const N = 1024, result = [];
+  let dcX = 0, dcY = 0;
+  for (let i = 0; i < N; i++) { const t = (i/N)*Math.PI*2; const p = shapeFn(t); dcX += p.x; dcY += p.y; }
+  result.dcX = dcX/N; result.dcY = dcY/N;
+  for (let k = 1; k <= nTerms; k++) {
+    let cx=0,sx=0,cy=0,sy=0;
+    for (let i = 0; i < N; i++) {
+      const t=(i/N)*Math.PI*2, p=shapeFn(t);
+      cx+=p.x*Math.cos(k*t); sx+=p.x*Math.sin(k*t); cy+=p.y*Math.cos(k*t); sy+=p.y*Math.sin(k*t);
+    }
+    result.push({cx:cx*2/N,sx:sx*2/N,cy:cy*2/N,sy:sy*2/N});
+  }
+  return result;
+}
+
+function fourierPoint(theta, c) {
+  let x = c.dcX||0, y = c.dcY||0;
+  for (let i = 0; i < c.length; i++) {
+    const k=i+1; x += c[i].cx*Math.cos(k*theta)+c[i].sx*Math.sin(k*theta);
+    y += c[i].cy*Math.cos(k*theta)+c[i].sy*Math.sin(k*theta);
+  }
+  return {x,y};
+}
+
+const fourierCache = {};
+function getFourierCoeffs(name) {
+  if (!fourierCache[name]) fourierCache[name] = fitFourier(FOURIER_SHAPES[name], FOURIER_TERMS);
+  return fourierCache[name];
+}
+
+function makeShape(type, params) {
+  if (type === 'super') {
+    return {
+      getPoint(theta) { const r = superformula(theta, params.m, params.n1, params.n2, params.n3); return {x:r*Math.cos(theta),y:r*Math.sin(theta)}; },
+      getPolarRadius(theta) { return superformula(theta, params.m, params.n1, params.n2, params.n3); },
+    };
+  }
+  const coeffs = getFourierCoeffs(params.name);
+  return {
+    getPoint(theta) { return fourierPoint(theta, coeffs); },
+    getPolarRadius(theta) { const p = fourierPoint(theta, coeffs); return Math.sqrt(p.x*p.x+p.y*p.y); },
+  };
+}
+
+function computeArcTable(shape, n) {
+  const table = [{theta:0,arcLen:0}]; let total=0, prev=shape.getPoint(0);
+  for (let i=1;i<=n;i++) { const t=(i/n)*Math.PI*2,p=shape.getPoint(t); total+=Math.sqrt((p.x-prev.x)**2+(p.y-prev.y)**2); table.push({theta:t,arcLen:total}); prev=p; }
+  return {table,totalLen:total};
+}
+
+function arcToTheta(table, target) {
+  let lo=0,hi=table.length-1;
+  while(lo<hi-1){const mid=(lo+hi)>>1;if(table[mid].arcLen<target)lo=mid;else hi=mid;}
+  const range=table[hi].arcLen-table[lo].arcLen; if(range===0)return table[lo].theta;
+  return table[lo].theta+(target-table[lo].arcLen)/range*(table[hi].theta-table[lo].theta);
+}
+
+// ==============================================
+// Drawing helpers
+// ==============================================
+function drawShapeOnCanvas(ctx, shape, color, w, h) {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+  const cx = w/2, cy = h/2;
+
+  // Auto-scale
+  let maxR = 0;
+  for (let i = 0; i < 500; i++) {
+    const p = shape.getPoint((i/500)*Math.PI*2);
+    maxR = Math.max(maxR, Math.sqrt(p.x*p.x + p.y*p.y));
+  }
+  const scale = Math.min(cx, cy) * 0.7 / (maxR || 1);
+
+  // Draw shape
+  ctx.beginPath();
+  for (let i = 0; i <= 500; i++) {
+    const t = (i/500) * Math.PI * 2;
+    const p = shape.getPoint(t);
+    const x = cx + p.x * scale, y = cy + p.y * scale;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ==============================================
+// State
+// ==============================================
+let shapeA, shapeB, arcTableA, arcTableB;
+let sizeRatio = 0.35, penOffset = 0.7, speed = 0.02, hue = 200;
+let dist = 0, prevRX = null, prevRY = null;
+let prevResX = null, prevResY = null;
+let animating = true;
+
+function readParams() {
+  const typeA = document.getElementById('sA-type').value;
+  const typeB = document.getElementById('sB-type').value;
+
+  if (typeA === 'super') {
+    shapeA = makeShape('super', {
+      m: parseFloat(document.getElementById('sA-m').value),
+      n1: parseFloat(document.getElementById('sA-n1').value),
+      n2: parseFloat(document.getElementById('sA-n2').value),
+      n3: parseFloat(document.getElementById('sA-n3').value),
+    });
+  } else {
+    shapeA = makeShape('fourier', { name: document.getElementById('sA-fshape').value });
+  }
+
+  if (typeB === 'super') {
+    shapeB = makeShape('super', {
+      m: parseFloat(document.getElementById('sB-m').value),
+      n1: parseFloat(document.getElementById('sB-n1').value),
+      n2: parseFloat(document.getElementById('sB-n2').value),
+      n3: parseFloat(document.getElementById('sB-n3').value),
+    });
+  } else {
+    shapeB = makeShape('fourier', { name: document.getElementById('sB-fshape').value });
+  }
+
+  sizeRatio = parseFloat(document.getElementById('s-ratio').value);
+  penOffset = parseFloat(document.getElementById('s-pen').value);
+  speed = parseFloat(document.getElementById('s-speed').value);
+  hue = parseFloat(document.getElementById('s-hue').value);
+
+  arcTableA = computeArcTable(shapeA, 2000);
+  arcTableB = computeArcTable(shapeB, 2000);
+}
+
+function resetResult() {
+  dist = 0;
+  prevRX = prevRY = prevResX = prevResY = null;
+  const rect = cResult.parentElement.getBoundingClientRect();
+  ctxResult.fillStyle = '#0a0a0a';
+  ctxResult.fillRect(0, 0, rect.width, rect.height);
+  const rect2 = cRoll.parentElement.getBoundingClientRect();
+  ctxRoll.fillStyle = '#0a0a0a';
+  ctxRoll.fillRect(0, 0, rect2.width, rect2.height);
+}
+
+// ==============================================
+// Animation
+// ==============================================
+function animate() {
+  requestAnimationFrame(animate);
+  if (!animating) return;
+
+  const rectA = cA.parentElement.getBoundingClientRect();
+  const rectR = cRoll.parentElement.getBoundingClientRect();
+  const rectRes = cResult.parentElement.getBoundingClientRect();
+  const wA = rectA.width, hA = rectA.height;
+  const wR = rectR.width, hR = rectR.height;
+  const wRes = rectRes.width, hRes = rectRes.height;
+
+  // Draw Shape A and B (static, redraw each frame for simplicity)
+  drawShapeOnCanvas(ctxA, shapeA, '#88ccff', wA, hA);
+  drawShapeOnCanvas(ctxB, shapeB, '#ff88cc', rectA.width, rectA.height);
+
+  // Rolling visualization — show Shape B rolling inside Shape A
+  const rollCx = wR/2, rollCy = hR/2;
+  let maxRA = 0;
+  for (let i = 0; i < 200; i++) {
+    const p = shapeA.getPoint((i/200)*Math.PI*2);
+    maxRA = Math.max(maxRA, Math.sqrt(p.x*p.x+p.y*p.y));
+  }
+  const rollScale = Math.min(rollCx, rollCy) * 0.7 / (maxRA || 1);
+
+  ctxRoll.fillStyle = 'rgba(10,10,10,0.08)'; // slight trail
+  ctxRoll.fillRect(0, 0, wR, hR);
+
+  // Draw Shape A outline
+  ctxRoll.beginPath();
+  for (let i = 0; i <= 500; i++) {
+    const t = (i/500)*Math.PI*2;
+    const p = shapeA.getPoint(t);
+    const x = rollCx + p.x*rollScale, y = rollCy + p.y*rollScale;
+    if (i===0) ctxRoll.moveTo(x,y); else ctxRoll.lineTo(x,y);
+  }
+  ctxRoll.closePath();
+  ctxRoll.strokeStyle = 'rgba(136,204,255,0.2)';
+  ctxRoll.lineWidth = 1;
+  ctxRoll.stroke();
+
+  // Compute current rolling position
+  dist += speed;
+  const thetaA = arcToTheta(arcTableA.table, dist % arcTableA.totalLen);
+  const pA = shapeA.getPoint(thetaA);
+
+  // Tangent + normal
+  const dt2 = 0.001;
+  const pA2 = shapeA.getPoint(thetaA + dt2);
+  let tx = pA2.x-pA.x, ty = pA2.y-pA.y;
+  const tl = Math.sqrt(tx*tx+ty*ty); if(tl>0){tx/=tl;ty/=tl;}
+  let nx = ty, ny = -tx;
+  if(nx*pA.x+ny*pA.y>0){nx=-nx;ny=-ny;}
+
+  const bPer = arcTableB.totalLen * sizeRatio;
+  const thetaB = arcToTheta(arcTableB.table, (dist % bPer) / sizeRatio);
+  const rB = shapeB.getPolarRadius(thetaB) * sizeRatio;
+  const clampedRB = Math.min(rB, Math.sqrt(pA.x*pA.x+pA.y*pA.y) * 0.9);
+
+  const cbx = pA.x + nx * clampedRB;
+  const cby = pA.y + ny * clampedRB;
+  const rotation = thetaA - thetaB;
+  const penDist = penOffset * sizeRatio;
+  const penX = cbx + penDist * Math.cos(rotation);
+  const penY = cby + penDist * Math.sin(rotation);
+
+  // Draw Shape B at its current position (rolling view)
+  ctxRoll.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const t = (i/200)*Math.PI*2;
+    const bp = shapeB.getPoint(t);
+    const bx = (bp.x * sizeRatio * Math.cos(rotation) - bp.y * sizeRatio * Math.sin(rotation)) + cbx;
+    const by = (bp.x * sizeRatio * Math.sin(rotation) + bp.y * sizeRatio * Math.cos(rotation)) + cby;
+    const sx = rollCx + bx*rollScale, sy = rollCy + by*rollScale;
+    if(i===0) ctxRoll.moveTo(sx,sy); else ctxRoll.lineTo(sx,sy);
+  }
+  ctxRoll.closePath();
+  ctxRoll.strokeStyle = 'rgba(255,136,204,0.5)';
+  ctxRoll.lineWidth = 1;
+  ctxRoll.stroke();
+
+  // Draw contact point
+  const contactSx = rollCx + pA.x*rollScale, contactSy = rollCy + pA.y*rollScale;
+  ctxRoll.fillStyle = '#ff0';
+  ctxRoll.beginPath(); ctxRoll.arc(contactSx, contactSy, 3, 0, Math.PI*2); ctxRoll.fill();
+
+  // Draw pen point
+  const penSx = rollCx + penX*rollScale, penSy = rollCy + penY*rollScale;
+  ctxRoll.fillStyle = '#0ff';
+  ctxRoll.beginPath(); ctxRoll.arc(penSx, penSy, 3, 0, Math.PI*2); ctxRoll.fill();
+
+  // Draw pen trace on rolling view
+  if (prevRX !== null) {
+    ctxRoll.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+    ctxRoll.lineWidth = 1.5;
+    ctxRoll.beginPath();
+    ctxRoll.moveTo(prevRX, prevRY);
+    ctxRoll.lineTo(penSx, penSy);
+    ctxRoll.stroke();
+  }
+  prevRX = penSx; prevRY = penSy;
+
+  // Result view — clean spirograph
+  const resCx = wRes/2, resCy = hRes/2;
+  const resScale = Math.min(resCx, resCy) * 0.7 / (maxRA || 1);
+  const resPenSx = resCx + penX * resScale;
+  const resPenSy = resCy + penY * resScale;
+
+  const jumpDist = prevResX !== null ? Math.sqrt((resPenSx-prevResX)**2+(resPenSy-prevResY)**2) : 0;
+  if (prevResX !== null && jumpDist < wRes * 0.3) {
+    ctxResult.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+    ctxResult.lineWidth = 2;
+    ctxResult.lineCap = 'round';
+    ctxResult.beginPath();
+    ctxResult.moveTo(prevResX, prevResY);
+    ctxResult.lineTo(resPenSx, resPenSy);
+    ctxResult.stroke();
+  }
+  prevResX = resPenSx; prevResY = resPenSy;
+}
+
+// ==============================================
+// Wire controls
+// ==============================================
+function wireSlider(id, valId) {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    valEl.textContent = el.value;
+    readParams();
+    resetResult();
+  });
+}
+
+for (const p of ['sA-m','sA-n1','sA-n2','sA-n3','sB-m','sB-n1','sB-n2','sB-n3']) {
+  wireSlider(p, p.replace('s','v'));
+}
+wireSlider('s-ratio', 'v-ratio');
+wireSlider('s-pen', 'v-pen');
+wireSlider('s-speed', 'v-speed');
+wireSlider('s-hue', 'v-hue');
+
+for (const which of ['A','B']) {
+  document.getElementById('s'+which+'-type').addEventListener('change', () => {
+    const t = document.getElementById('s'+which+'-type').value;
+    document.getElementById('s'+which+'-super').style.display = t==='super'?'':'none';
+    document.getElementById('s'+which+'-fourier').style.display = t==='fourier'?'':'none';
+    readParams(); resetResult();
+  });
+  document.getElementById('s'+which+'-fshape').addEventListener('change', () => {
+    readParams(); resetResult();
+  });
+}
+
+document.getElementById('s-animate').addEventListener('change', (e) => {
+  animating = e.target.checked;
+});
+
+// Init
+resizeCanvases();
+window.addEventListener('resize', () => { resizeCanvases(); readParams(); resetResult(); });
+readParams();
+resetResult();
+animate();
+</script>
+</body>
+</html>

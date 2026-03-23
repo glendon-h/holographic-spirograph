@@ -134,6 +134,9 @@
   <label>Line width</label>
   <div class="row"><input type="range" id="s-lineWidth" min="1" max="5" step="0.5" value="2"><span class="val" id="v-lineWidth">2</span></div>
 
+  <label>Hue</label>
+  <div class="row"><input type="range" id="s-hue" min="0" max="360" step="1" value="200"><span class="val" id="v-hue">200</span></div>
+
   <hr>
   <h3>Bloom</h3>
   <label>Strength</label>
@@ -167,8 +170,25 @@
   <input type="file" id="curated-image" accept="image/*" multiple style="margin-top:4px;font-size:12px;">
 
   <hr>
-  <h3>Presets</h3>
-  <div id="presets">
+  <h3>Test Emotions</h3>
+  <p style="font-size:10px;color:#555;margin-bottom:6px;">Mock emotional profiles — test the emotion→shape mapping without the server.</p>
+  <div id="emotion-presets" style="display:flex;flex-wrap:wrap;gap:6px;">
+    <button data-e="love">Love</button>
+    <button data-e="grief">Grief</button>
+    <button data-e="wonder">Wonder</button>
+    <button data-e="serenity">Serenity</button>
+    <button data-e="intensity">Intensity</button>
+    <button data-e="playful">Playful</button>
+    <button data-e="nostalgia">Nostalgia</button>
+    <button data-e="devotion">Devotion</button>
+    <button data-e="transcendence">Transcendence</button>
+    <button data-e="vulnerability">Vulnerability</button>
+  </div>
+  <div id="emotion-display" style="font-size:10px;color:#555;margin-top:6px;max-height:60px;overflow-y:auto;"></div>
+
+  <hr>
+  <h3>Shape Presets</h3>
+  <div id="presets" style="display:flex;flex-wrap:wrap;gap:6px;">
     <button data-p="classic">Classic</button>
     <button data-p="starflower">Starflower</button>
     <button data-p="gear">Gear</button>
@@ -343,6 +363,9 @@ function arcToTheta(table, targetLen) {
 // ==============================================
 // Rolling simulation (generic — works with any shape)
 // ==============================================
+let lastPenX = 0, lastPenY = 0;
+const MAX_PEN_JUMP = 0.5; // max distance between consecutive pen points (in shape space)
+
 function computeRollingPoint(dist, shapeA, shapeB, arcTableA, arcTableB, sizeRatio, penOffset) {
   const thetaA = arcToTheta(arcTableA.table, dist % arcTableA.totalLen);
   const pA = shapeA.getPoint(thetaA);
@@ -364,15 +387,24 @@ function computeRollingPoint(dist, shapeA, shapeB, arcTableA, arcTableB, sizeRat
   const thetaB = arcToTheta(arcTableB.table, distOnB / sizeRatio);
   const rB = shapeB.getPolarRadius(thetaB) * sizeRatio;
 
-  const cBx = pA.x + nx * rB;
-  const cBy = pA.y + ny * rB;
+  // Clamp rB to prevent pen from flying outside shape A
+  const rA = Math.sqrt(pA.x * pA.x + pA.y * pA.y);
+  const clampedRB = Math.min(rB, rA * 0.9);
+
+  const cBx = pA.x + nx * clampedRB;
+  const cBy = pA.y + ny * clampedRB;
   const rotation = thetaA - thetaB;
   const penDist = penOffset * sizeRatio;
 
-  return {
-    x: cBx + penDist * Math.cos(rotation),
-    y: cBy + penDist * Math.sin(rotation),
-  };
+  const px = cBx + penDist * Math.cos(rotation);
+  const py = cBy + penDist * Math.sin(rotation);
+
+  // Detect jumps — if pen moved too far in one step, flag it
+  const jumpDist = Math.sqrt((px - lastPenX) ** 2 + (py - lastPenY) ** 2);
+  lastPenX = px;
+  lastPenY = py;
+
+  return { x: px, y: py, jump: jumpDist > MAX_PEN_JUMP };
 }
 
 // ==============================================
@@ -651,6 +683,11 @@ document.getElementById('s-lineWidth').addEventListener('input', (e) => {
   lineWidth = parseFloat(e.target.value);
 });
 
+document.getElementById('s-hue').addEventListener('input', (e) => {
+  document.getElementById('v-hue').textContent = e.target.value;
+  baseHue = parseFloat(e.target.value);
+});
+
 // Bloom sliders — wired after bloomPass is created (below)
 
 document.getElementById('s-showShapes').addEventListener('change', () => {
@@ -897,6 +934,67 @@ async function advanceFromInput() {
 }
 
 // ==============================================
+// Mock Emotion Profiles
+// ==============================================
+const MOCK_EMOTIONS = {
+  love:           { love: 0.9, warmth: 0.8, devotion: 0.7, intimacy: 0.6, connection: 0.7, tenderness: 0.5, joy: 0.4, gratitude: 0.3 },
+  grief:          { grief: 0.9, sadness: 0.8, vulnerability: 0.6, fragility: 0.7, isolation: 0.4, melancholy: 0.5, longing: 0.4 },
+  wonder:         { wonder: 0.9, awe: 0.8, curiosity: 0.6, grandeur: 0.5, surprise: 0.4, transcendence: 0.3, complexity: 0.4 },
+  serenity:       { serenity: 0.9, trust: 0.7, warmth: 0.5, hope: 0.4, belonging: 0.3 },
+  intensity:      { intensity: 0.9, anger: 0.5, tension: 0.6, complexity: 0.7, excitement: 0.4, anticipation: 0.3 },
+  playful:        { playfulness: 0.9, joy: 0.7, excitement: 0.5, warmth: 0.3, curiosity: 0.3, surprise: 0.2 },
+  nostalgia:      { nostalgia: 0.9, melancholy: 0.5, warmth: 0.6, longing: 0.6, bittersweetness: 0.7, love: 0.3 },
+  devotion:       { devotion: 0.9, love: 0.7, gratitude: 0.5, trust: 0.6, connection: 0.6, warmth: 0.5, vulnerability: 0.3 },
+  transcendence:  { transcendence: 0.9, awe: 0.7, wonder: 0.6, grandeur: 0.8, ecstasy: 0.4, serenity: 0.3 },
+  vulnerability:  { vulnerability: 0.9, fragility: 0.7, intimacy: 0.5, trust: 0.4, connection: 0.4, sadness: 0.2, love: 0.3 },
+};
+
+function applyMockEmotion(name) {
+  const emotions = MOCK_EMOTIONS[name];
+  if (!emotions) return;
+
+  // Fill in zeros for all 42 dims
+  const full = {};
+  for (const e of ['joy','sadness','anger','fear','surprise','disgust','trust','anticipation',
+    'nostalgia','awe','serenity','melancholy','tenderness','excitement','tension','playfulness',
+    'longing','pride','shame','curiosity','love','intimacy','belonging','isolation','empathy',
+    'reverence','gratitude','devotion','vulnerability','connection','wonder','transcendence',
+    'bittersweetness','hope','grief','ecstasy','warmth','coldness','complexity','intensity',
+    'fragility','grandeur']) {
+    full[e] = emotions[e] || 0;
+  }
+
+  const params = emotionToShapeParams(full);
+  targetCoeffsA = shapeToCoeffs(params.A);
+  targetCoeffsB = shapeToCoeffs(params.B);
+  targetRatio = params.ratio;
+  targetPen = params.pen;
+  baseHue = params.hue;
+
+  // Show top emotions
+  const sorted = Object.entries(emotions).sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 4).map(([k, v]) => `${k}:${v.toFixed(1)}`).join(', ');
+  showStatus(`emotion: ${name} → ${top}`);
+
+  // Display in panel
+  document.getElementById('emotion-display').textContent =
+    sorted.map(([k, v]) => `${k}: ${v.toFixed(2)}`).join(' | ');
+
+  autoMode = false;
+  document.getElementById('s-auto').checked = false;
+  resetDrawing();
+}
+
+document.getElementById('emotion-presets').addEventListener('click', (e) => {
+  if (e.target.dataset.e) applyMockEmotion(e.target.dataset.e);
+});
+
+// Style emotion buttons same as presets
+document.querySelectorAll('#emotion-presets button').forEach(btn => {
+  btn.style.cssText = 'background:#2a2233;color:#c8a;border:1px solid #644;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;';
+});
+
+// ==============================================
 // Panel toggle (tap canvas to open/close)
 // ==============================================
 const controlsPanel = document.getElementById('controls');
@@ -1012,10 +1110,9 @@ function animateWithBloom() {
     const pen = computeRollingPoint(dist, shapeA, shapeB, arcTableA, arcTableB, sizeRatio, penOffset);
     const sx = centerX + pen.x * screenScale;
     const sy = centerY + pen.y * screenScale;
-    if (prevPenX !== null) {
-      const hue = (baseHue + (dist - tAtCycleStart) * 20) % 360;
-      ctx.strokeStyle = hsl(hue, 80, 60, 0.9);
-      ctx.lineWidth = 2;
+    if (prevPenX !== null && !pen.jump) {
+      ctx.strokeStyle = hsl(baseHue, 80, 60, 0.9);
+      ctx.lineWidth = lineWidth;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(prevPenX, prevPenY);
