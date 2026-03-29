@@ -874,6 +874,109 @@ function startTarget() {
 }
 
 // ==============================================
+// Icon Renderers
+// ==============================================
+const FEEDBACK_COLORS = {
+  intune:    'rgba(106, 234, 154, 0.75)',
+  close:     'rgba(232, 200, 90, 0.75)',
+  off:       'rgba(90, 90, 110, 0.4)',
+  neutral:   'rgba(168, 152, 255, 0.7)',
+  confirmed: 'rgba(106, 234, 154, 0.7)',
+};
+
+function initCanvas(canvas, size) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function drawShapeIcon(canvas, shapeName, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const shape = makeShape(shapeName);
+  let maxR = 0;
+  for (let i = 0; i < 200; i++) {
+    const t = i / 200;
+    const pt = shape(t);
+    const r = Math.sqrt(pt.x * pt.x + pt.y * pt.y);
+    if (r > maxR) maxR = r;
+  }
+  const scale = (size / 2) * 0.7 / (maxR || 1);
+  const cx = size / 2;
+  const cy = size / 2;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i <= 300; i++) {
+    const t = i / 300;
+    const pt = shape(t);
+    const x = cx + pt.x * scale;
+    const y = cy + pt.y * scale;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawSizeIcon(canvas, level, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const radii = [0.18, 0.3, 0.42, 0.56];
+  const r = radii[level] * (size / 2);
+  const cx = size / 2;
+  const cy = size / 2;
+  // Fill with color at 0.12 opacity
+  const fillColor = color.replace(/[\d.]+\)$/, '0.12)');
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawReachIcon(canvas, level, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const distances = [0.12, 0.22, 0.32, 0.42];
+  const dist = distances[level] * size;
+  const cx = size / 2;
+  const cy = size / 2;
+  const angle = -Math.PI / 4; // 45 degrees up-right for visual clarity
+  const dotX = cx + Math.cos(angle) * dist;
+  const dotY = cy + Math.sin(angle) * dist;
+  // Center dot at 0.25 opacity
+  const dimColor = color.replace(/[\d.]+\)$/, '0.25)');
+  ctx.fillStyle = dimColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  // Arm line at 0.25 opacity
+  ctx.strokeStyle = dimColor;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(dotX, dotY);
+  ctx.stroke();
+  // Pen dot at full color
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawIcon(canvas, paramType, valueIdx, color, size) {
+  if (paramType === 'outer') drawShapeIcon(canvas, OUTER_SHAPES[valueIdx], color, size);
+  else if (paramType === 'inner') drawShapeIcon(canvas, INNER_SHAPES[valueIdx], color, size);
+  else if (paramType === 'size') drawSizeIcon(canvas, valueIdx, color, size);
+  else if (paramType === 'reach') drawReachIcon(canvas, valueIdx, color, size);
+}
+
+// ==============================================
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
