@@ -1818,7 +1818,7 @@ function playWinSound() {
 // Feedback Form
 // ==============================================
 // *** BETA CONFIG — paste your webhook.site URL here ***
-var FEEDBACK_WEBHOOK = '';
+var FEEDBACK_WEBHOOK = 'https://webhook.site/11ad6d00-bce5-43fd-8126-18b5aded9462';
 
 var fbData = { stars: 0, easy: '', icons: '', difficulty: '', returnPlay: '', text: '' };
 
@@ -1864,17 +1864,27 @@ function wireFeedback() {
     localStorage.setItem('spirle-feedback', JSON.stringify(allFeedback));
 
     // Send to webhook if configured
+    var submitBtn = document.getElementById('fbSubmit');
+    var thanksEl = document.getElementById('fbThanks');
+
     if (FEEDBACK_WEBHOOK) {
+      submitBtn.textContent = 'Sending...';
+      submitBtn.disabled = true;
       fetch(FEEDBACK_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fbData),
-        mode: 'no-cors'
-      }).catch(function() {});
+        body: JSON.stringify(fbData)
+      }).then(function(res) {
+        submitBtn.style.display = 'none';
+        thanksEl.style.display = 'block';
+      }).catch(function(err) {
+        submitBtn.textContent = 'Failed — tap to retry';
+        submitBtn.disabled = false;
+      });
+    } else {
+      submitBtn.style.display = 'none';
+      thanksEl.style.display = 'block';
     }
-
-    document.getElementById('fbSubmit').style.display = 'none';
-    document.getElementById('fbThanks').style.display = 'block';
   });
 }
 
