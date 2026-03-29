@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Loople Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0c0c14;
+    --bg2: #14141e;
+    --bg3: #1a1a26;
+    --text: #c8c8d8;
+    --text2: #e8e0f0;
+    --muted: #6a6a8a;
+    --muted2: #5a5a7a;
+    --muted3: #4a4a6a;
+    --border: #2a2a3a;
+    --border2: #1e1e2e;
+    --border3: #1e1e30;
+    --target-bg1: #141420;
+    --target-bg2: #0c0c14;
+    --cell-intune-bg: #1a3a2a;
+    --cell-intune-border: #2a6a4a;
+    --cell-close-bg: #2e2a1a;
+    --cell-close-border: #6a5a2a;
+    --cell-off-bg: #1a1a22;
+    --cell-off-border: #22222e;
+    --cell-empty-bg: #12121a;
+    --cell-empty-border: #1a1a26;
+    --cell-pending-bg: #161620;
+    --cell-pending-border: #2a2a40;
+    --picker-selected: #7a6aee;
+    --picker-selected-bg: #1e1a30;
+    --picker-confirmed: #2a6a4a;
+    --picker-confirmed-bg: #1a2a22;
+    --roll-border: #4a3a8a;
+    --roll-bg1: #2a1e4e;
+    --roll-bg2: #1e1a3a;
+    --roll-text: #b8a8ee;
+    --modal-bg: #16161e;
+    --modal-overlay: rgba(0,0,0,0.7);
+    --divider: #2a2a3a;
+    --toggle-bg: #2a2a3a;
+    --toggle-border: #3a3a4a;
+    --toggle-dot: #6a6a8a;
+    --toggle-on-bg: #2a4e3a;
+    --toggle-on-border: #3a8a5a;
+    --toggle-on-dot: #6aee9a;
+    --active-btn: #b8a8ee;
+    --active-btn-border: #4a3a8a;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+      --bg: #f5f5f8; --bg2: #ececf0; --bg3: #e2e2ea;
+      --text: #333340; --text2: #1a1a2e;
+      --muted: #8888aa; --muted2: #9999b0; --muted3: #aaaacc;
+      --border: #d0d0dd; --border2: #d8d8e2; --border3: #c8c8d8;
+      --target-bg1: #eeeef4; --target-bg2: #f5f5f8;
+      --cell-intune-bg: #d4f5e0; --cell-intune-border: #5ac880;
+      --cell-close-bg: #f5ecd0; --cell-close-border: #c8a840;
+      --cell-off-bg: #e8e8ee; --cell-off-border: #ccccdd;
+      --cell-empty-bg: #ededf2; --cell-empty-border: #d8d8e2;
+      --cell-pending-bg: #e8e8f0; --cell-pending-border: #b0b0cc;
+      --picker-selected: #6a5ad8; --picker-selected-bg: #eae6f8;
+      --picker-confirmed: #3a9a5a; --picker-confirmed-bg: #e0f5ea;
+      --roll-border: #8878cc; --roll-bg1: #ece8f8; --roll-bg2: #e0daf0; --roll-text: #5a4ab0;
+      --modal-bg: #fafafc; --modal-overlay: rgba(0,0,0,0.3); --divider: #d0d0dd;
+      --toggle-bg: #d0d0dd; --toggle-border: #b8b8cc; --toggle-dot: #9999b0;
+      --toggle-on-bg: #b0e8c8; --toggle-on-border: #5ac880; --toggle-on-dot: #2a8a4a;
+      --active-btn: #5a4ab0; --active-btn-border: #8878cc;
+    }
+  }
+  [data-theme="light"] {
+    --bg: #f5f5f8; --bg2: #ececf0; --bg3: #e2e2ea;
+    --text: #333340; --text2: #1a1a2e;
+    --muted: #8888aa; --muted2: #9999b0; --muted3: #aaaacc;
+    --border: #d0d0dd; --border2: #d8d8e2; --border3: #c8c8d8;
+    --target-bg1: #eeeef4; --target-bg2: #f5f5f8;
+    --cell-intune-bg: #d4f5e0; --cell-intune-border: #5ac880;
+    --cell-close-bg: #f5ecd0; --cell-close-border: #c8a840;
+    --cell-off-bg: #e8e8ee; --cell-off-border: #ccccdd;
+    --cell-empty-bg: #ededf2; --cell-empty-border: #d8d8e2;
+    --cell-pending-bg: #e8e8f0; --cell-pending-border: #b0b0cc;
+    --picker-selected: #6a5ad8; --picker-selected-bg: #eae6f8;
+    --picker-confirmed: #3a9a5a; --picker-confirmed-bg: #e0f5ea;
+    --roll-border: #8878cc; --roll-bg1: #ece8f8; --roll-bg2: #e0daf0; --roll-text: #5a4ab0;
+    --modal-bg: #fafafc; --modal-overlay: rgba(0,0,0,0.3); --divider: #d0d0dd;
+    --toggle-bg: #d0d0dd; --toggle-border: #b8b8cc; --toggle-dot: #9999b0;
+    --toggle-on-bg: #b0e8c8; --toggle-on-border: #5ac880; --toggle-on-dot: #2a8a4a;
+    --active-btn: #5a4ab0; --active-btn-border: #8878cc;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+  }
+
+  .game {
+    height: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    height: 36px;
+  }
+  .header-left {
+    display: flex;
+    align-items: baseline;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--text2);
+    text-transform: uppercase;
+  }
+  .puzzle-num {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .icon-btn.active {
+    color: var(--active-btn);
+    border-color: var(--active-btn-border);
+  }
+
+  /* Canvas — single circle for both target and guess overlay */
+  .target-wrap {
+    flex-shrink: 1;
+    width: 100%;
+    max-width: min(280px, calc(100vh - 380px));
+    aspect-ratio: 1;
+    position: relative;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--target-bg1) 0%, var(--target-bg2) 70%);
+    border: 1px solid var(--border3);
+    margin: 4px auto;
+  }
+  .target-wrap canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Pickers */
+  .pickers-area {
+    width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .picker-group {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .picker-label {
+    font-size: 7px;
+    color: var(--muted2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 36px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .picker-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    flex: 1;
+  }
+  .picker-option {
+    height: 34px;
+    border-radius: 6px;
+    min-width: 0;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .picker-option canvas {
+    width: 24px;
+    height: 24px;
+    display: block;
+  }
+  .picker-option:hover {
+    border-color: var(--muted3);
+  }
+  .picker-option.selected {
+    border-color: var(--picker-selected);
+    background: var(--picker-selected-bg);
+    box-shadow: 0 0 10px rgba(122, 106, 238, 0.15);
+  }
+  .picker-option.confirmed {
+    border-color: var(--picker-confirmed);
+    background: var(--picker-confirmed-bg);
+    pointer-events: none;
+  }
+
+  /* Roll button */
+  .roll-btn {
+    width: 100%;
+    max-width: 240px;
+    height: 40px;
+    border-radius: 20px;
+    border: 1px solid var(--roll-border);
+    background: linear-gradient(135deg, var(--roll-bg1), var(--roll-bg2));
+    color: var(--roll-text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 6px 0 2px;
+  }
+  .roll-btn:hover:not(:disabled) {
+    border-color: var(--picker-selected);
+    box-shadow: 0 0 20px rgba(122, 106, 238, 0.2);
+    color: var(--text2);
+  }
+  .roll-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Result strip */
+  .result-strip {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+    min-height: 28px;
+    margin: 6px 0;
+  }
+  .result-cluster {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+  }
+  .r-line {
+    width: 4px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--cell-empty-bg);
+    transition: all 0.3s ease;
+  }
+  .r-line.intune { background: #3a9a5a; }
+  .r-line.close { background: #c8a840; }
+  .r-line.off { background: #3a3a4a; }
+  .guess-status {
+    font-size: 10px;
+    color: var(--muted3);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* Lock indicator on picker labels */
+  .picker-group.locked .picker-label {
+    color: var(--picker-confirmed);
+  }
+  .picker-group.locked .picker-label::after {
+    content: ' \u2713';
+  }
+
+  /* End modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--modal-overlay);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--modal-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px 20px;
+    width: 320px;
+    max-width: calc(100vw - 32px);
+    position: relative;
+  }
+  .modal-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text2);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .end-content { text-align: center; }
+  .end-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .end-answer {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .end-answer strong { color: var(--text2); }
+  .end-share {
+    width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid var(--picker-selected);
+    background: var(--picker-selected-bg);
+    color: var(--picker-selected);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .end-close {
+    width: 100%;
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* Test bar */
+  .test-bar {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 6px 16px; z-index: 50;
+    align-items: center; justify-content: center; gap: 10px;
+  }
+  .test-bar.visible { display: flex; }
+  .test-btn {
+    padding: 4px 12px; border-radius: 6px; font-size: 12px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); cursor: pointer; font-family: inherit;
+  }
+  .test-btn:active { background: var(--picker-selected-bg); }
+  .test-reset { margin-left: 10px; color: var(--muted); }
+  .test-day { font-size: 12px; color: var(--muted); min-width: 50px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Loople Lab</h1>
+      <span class="puzzle-num" id="puzzleNum">#1</span>
+    </div>
+    <div class="header-right">
+      <div class="icon-btn" id="btnSound" title="Sound">&#9834;</div>
+    </div>
+  </div>
+
+  <!-- Single canvas: target + guess overlay -->
+  <div class="target-wrap">
+    <canvas id="target"></canvas>
+  </div>
+
+  <!-- Result strip -->
+  <div class="result-strip" id="resultStrip"></div>
+
+  <!-- Pickers -->
+  <div class="pickers-area" id="pickersArea"></div>
+
+  <!-- Roll button -->
+  <button class="roll-btn" id="rollBtn" disabled>Roll</button>
+  <div class="guess-status" id="guessStatus"></div>
+</div>
+
+<!-- End-of-game modal -->
+<div class="modal-overlay" id="endModal">
+  <div class="modal">
+    <div class="modal-title" id="endTitle">In Tune!</div>
+    <div class="modal-close" id="endClose">&#10005;</div>
+    <div class="end-content">
+      <div class="end-dots" id="endDots"></div>
+      <div class="end-answer" id="endAnswer"></div>
+      <button class="end-share" id="endShare">Share</button>
+      <button class="end-close" id="endCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Test bar -->
+<div class="test-bar" id="testBar">
+  <button class="test-btn" id="testPrev">&#9664;</button>
+  <span class="test-day" id="testDay">Day 0</span>
+  <button class="test-btn" id="testNext">&#9654;</button>
+  <button class="test-btn test-reset" id="testReset">Reset</button>
+</div>
+
+<script>
+// ==============================================
+// Shape Math Engine (copied from loople.html)
+// ==============================================
+
+function superformula(theta, m, n1, n2, n3) {
+  const t = m * theta / 4;
+  const t1 = Math.pow(Math.abs(Math.cos(t)), n2);
+  const t2 = Math.pow(Math.abs(Math.sin(t)), n3);
+  const sum = t1 + t2;
+  return sum === 0 ? 1 : Math.pow(sum, -1 / n1);
+}
+
+const FOURIER_TERMS = 12;
+const FOURIER_SHAPES = {
+  circle:    (t) => ({ x: Math.cos(t), y: Math.sin(t) }),
+  ellipse:   (t) => ({ x: Math.cos(t), y: 0.65*Math.sin(t) }),
+  rtriangle: (t) => { const r = superformula(t, 3, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  rsquare:   (t) => { const r = superformula(t, 4, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  rpentagon: (t) => { const r = superformula(t, 5, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  heart:     (t) => ({ x: 16*Math.pow(Math.sin(t),3)/17, y: -(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/17 }),
+  trefoil:   (t) => { const r = 1 + 0.5*Math.cos(3*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  starfish:  (t) => { const r = 1 + 0.4*Math.cos(5*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  blob:      (t) => { const r = 1 + 0.3*Math.sin(2*t+0.5) + 0.2*Math.cos(3*t+1) + 0.15*Math.sin(5*t+2); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  star:      (t) => { const r = superformula(t, 5, 0.3, 0.3, 0.3); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  flower:    (t) => { const r = 1 + 0.3*Math.cos(8*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  butterfly: (t) => { const r = Math.exp(Math.sin(t)) - 2*Math.cos(4*t) + Math.pow(Math.abs(Math.sin((2*t-Math.PI)/24)), 5); return { x: r*Math.cos(t)*0.25, y: r*Math.sin(t)*0.25 }; },
+  figure8:   (t) => ({ x: Math.sin(t), y: Math.sin(2*t)*0.6 }),
+  leaf:      (t) => { const r = 0.5*(1+0.9*Math.cos(t))*(1+0.1*Math.cos(4*t+0.5)); return { x: r*Math.cos(t), y: r*Math.sin(t)*1.3 }; },
+};
+
+function fitFourier(fn, n) {
+  const N = 1024, r = [];
+  let dx = 0, dy = 0;
+  for (let i = 0; i < N; i++) { const t = (i/N)*Math.PI*2, p = fn(t); dx += p.x; dy += p.y; }
+  r.dcX = dx/N; r.dcY = dy/N;
+  for (let k = 1; k <= n; k++) {
+    let cx = 0, sx = 0, cy = 0, sy = 0;
+    for (let i = 0; i < N; i++) {
+      const t = (i/N)*Math.PI*2, p = fn(t);
+      cx += p.x*Math.cos(k*t); sx += p.x*Math.sin(k*t);
+      cy += p.y*Math.cos(k*t); sy += p.y*Math.sin(k*t);
+    }
+    r.push({ cx: cx*2/N, sx: sx*2/N, cy: cy*2/N, sy: sy*2/N });
+  }
+  return r;
+}
+
+function fourierPt(t, c) {
+  let x = c.dcX || 0, y = c.dcY || 0;
+  for (let i = 0; i < c.length; i++) {
+    const k = i + 1;
+    x += c[i].cx*Math.cos(k*t) + c[i].sx*Math.sin(k*t);
+    y += c[i].cy*Math.cos(k*t) + c[i].sy*Math.sin(k*t);
+  }
+  return { x, y };
+}
+
+const fourierCache = {};
+function getFC(name) {
+  if (!fourierCache[name]) fourierCache[name] = fitFourier(FOURIER_SHAPES[name], FOURIER_TERMS);
+  return fourierCache[name];
+}
+
+function makeShape(name) {
+  const c = getFC(name);
+  return {
+    getPoint(t)       { return fourierPt(t, c); },
+    getPolarRadius(t) { const pt = fourierPt(t, c); return Math.sqrt(pt.x*pt.x + pt.y*pt.y); }
+  };
+}
+
+function arcTable(shape, n) {
+  const t = [{ theta: 0, arcLen: 0 }];
+  let total = 0, prev = shape.getPoint(0);
+  for (let i = 1; i <= n; i++) {
+    const th = (i/n)*Math.PI*2, p = shape.getPoint(th);
+    total += Math.sqrt((p.x-prev.x)**2 + (p.y-prev.y)**2);
+    t.push({ theta: th, arcLen: total });
+    prev = p;
+  }
+  return { table: t, totalLen: total };
+}
+
+function arc2theta(table, target) {
+  let lo = 0, hi = table.length - 1;
+  while (lo < hi - 1) {
+    const m = (lo + hi) >> 1;
+    if (table[m].arcLen < target) lo = m; else hi = m;
+  }
+  const range = table[hi].arcLen - table[lo].arcLen;
+  return range === 0 ? table[lo].theta : table[lo].theta + (target - table[lo].arcLen) / range * (table[hi].theta - table[lo].theta);
+}
+
+// ==============================================
+// Daily Config & Puzzle Seeding
+// ==============================================
+const DAILY_CONFIG = [
+  { // Monday
+    outer: ['circle', 'ellipse', 'rsquare', 'rpentagon'],
+    inner: ['circle', 'ellipse', 'rtriangle', 'rsquare'],
+    hue: [200, 260], speed: 1.0, initLaps: 1.5,
+  },
+  { // Tuesday
+    outer: ['circle', 'ellipse', 'rsquare', 'heart'],
+    inner: ['circle', 'rsquare', 'rpentagon', 'heart'],
+    hue: [280, 340], speed: 1.0, initLaps: 1.2,
+  },
+  { // Wednesday
+    outer: ['ellipse', 'rsquare', 'rpentagon', 'heart'],
+    inner: ['rpentagon', 'heart', 'trefoil', 'starfish'],
+    hue: [20, 80], speed: 0.8, initLaps: 1.0,
+  },
+  { // Thursday
+    outer: ['rsquare', 'rpentagon', 'heart', 'blob'],
+    inner: ['trefoil', 'starfish', 'blob', 'star'],
+    hue: [140, 200], speed: 0.8, initLaps: 1.0,
+  },
+  { // Friday
+    outer: ['rpentagon', 'heart', 'blob', 'starfish'],
+    inner: ['starfish', 'star', 'flower', 'butterfly'],
+    hue: [320, 380], speed: 0.6, initLaps: 0.8,
+  },
+  { // Saturday
+    outer: ['heart', 'blob', 'starfish', 'trefoil'],
+    inner: ['flower', 'butterfly', 'figure8', 'leaf'],
+    hue: [80, 140], speed: 0.6, initLaps: 0.8,
+  },
+  { // Sunday
+    outer: ['blob', 'starfish', 'trefoil', 'rtriangle'],
+    inner: ['butterfly', 'figure8', 'leaf', 'star'],
+    hue: [0, 60], speed: 0.4, initLaps: 0.6,
+  },
+];
+
+const RATIOS = [0.2, 0.3, 0.4, 0.5];
+const PENS   = [0.4, 0.6, 0.8, 1.0];
+
+function getDayOfWeek(puzzle) {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('day') !== null) return parseInt(params.get('day')) % 7;
+  return (new Date().getDay() + 6) % 7;
+}
+
+function hashDate(dateStr) {
+  let h = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    h = (Math.imul(31, h) + dateStr.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function getDailyPuzzle() {
+  const epoch = new Date('2026-03-29');
+  const now   = new Date();
+  const params = new URLSearchParams(window.location.search);
+  const dayOverride = params.get('day');
+  var dateStr, dayNum;
+  if (dayOverride !== null) {
+    var offsetDate = new Date(epoch.getTime() + parseInt(dayOverride) * 86400000);
+    dateStr = offsetDate.toISOString().slice(0, 10);
+    dayNum = parseInt(dayOverride);
+  } else {
+    dateStr = now.toISOString().slice(0, 10);
+    dayNum = Math.floor((now - epoch) / 86400000);
+  }
+  const h = hashDate(dateStr);
+  var puzzle = {
+    outerIdx:  h % 4,
+    innerIdx:  (h >> 2) % 4,
+    ratioIdx:  (h >> 4) % 4,
+    penIdx:    (h >> 6) % 4,
+    rotation:  ((h >> 8) % 360) * Math.PI / 180,
+    dayNum:    dayNum,
+    dateStr:   dateStr
+  };
+  puzzle.weekDay = getDayOfWeek(puzzle);
+  puzzle.config = DAILY_CONFIG[puzzle.weekDay];
+  return puzzle;
+}
+
+function getPuzzleAnswer(puzzle) {
+  var cfg = puzzle.config;
+  return {
+    outer: cfg.outer[puzzle.outerIdx],
+    inner: cfg.inner[puzzle.innerIdx],
+    ratio: RATIOS[puzzle.ratioIdx],
+    pen:   PENS[puzzle.penIdx]
+  };
+}
+
+// ==============================================
+// Spirograph Point Computation
+// ==============================================
+function computeTargetPoints(answer, puzzle, laps) {
+  const sA = makeShape(answer.outer);
+  const sB = makeShape(answer.inner);
+  const atA = arcTable(sA, 2000);
+  const atB = arcTable(sB, 2000);
+
+  let maxR = 0;
+  for (let i = 0; i < 500; i++) {
+    const t = (i / 500) * Math.PI * 2;
+    const p = sA.getPoint(t);
+    const r = Math.sqrt(p.x * p.x + p.y * p.y);
+    if (r > maxR) maxR = r;
+  }
+
+  const points = [];
+  const step = 0.04;
+  const totalDist = atA.totalLen * laps;
+
+  for (let dist = 0; dist <= totalDist; dist += step) {
+    const thetaA = arc2theta(atA.table, dist % atA.totalLen);
+    const pA = sA.getPoint(thetaA);
+
+    const dt = 0.001;
+    const pA2 = sA.getPoint(thetaA + dt);
+    let tx = pA2.x - pA.x, ty = pA2.y - pA.y;
+    const tl = Math.sqrt(tx * tx + ty * ty);
+    if (tl > 0) { tx /= tl; ty /= tl; }
+    let nx = ty, ny = -tx;
+    if (nx * pA.x + ny * pA.y > 0) { nx = -nx; ny = -ny; }
+
+    const bPer = atB.totalLen * answer.ratio;
+    const thetaB = arc2theta(atB.table, (dist % bPer) / answer.ratio);
+    const rB = sB.getPolarRadius(thetaB) * answer.ratio;
+    const rA = Math.sqrt(pA.x * pA.x + pA.y * pA.y);
+    const clampedRB = Math.min(rB, rA * 0.9);
+
+    const cbx = pA.x + nx * clampedRB;
+    const cby = pA.y + ny * clampedRB;
+
+    const rot = thetaA - thetaB;
+    const penDist = answer.pen * answer.ratio;
+    const penX = cbx + penDist * Math.cos(rot);
+    const penY = cby + penDist * Math.sin(rot);
+
+    const rx = penX * Math.cos(puzzle.rotation) - penY * Math.sin(puzzle.rotation);
+    const ry = penX * Math.sin(puzzle.rotation) + penY * Math.cos(puzzle.rotation);
+
+    points.push({ x: rx, y: ry, maxR });
+  }
+
+  return points;
+}
+
+// ==============================================
+// Icon Renderers
+// ==============================================
+const lightOverrideStored = localStorage.getItem('loople-light');
+const isLight = lightOverrideStored === 'true' || (lightOverrideStored === null && window.matchMedia('(prefers-color-scheme: light)').matches);
+if (lightOverrideStored === 'true') document.documentElement.setAttribute('data-theme', 'light');
+
+const FEEDBACK_COLORS = {
+  intune:    isLight ? 'rgba(40, 160, 80, 0.8)' : 'rgba(106, 234, 154, 0.75)',
+  close:     isLight ? 'rgba(180, 150, 30, 0.8)' : 'rgba(232, 200, 90, 0.75)',
+  off:       isLight ? 'rgba(140, 140, 160, 0.5)' : 'rgba(90, 90, 110, 0.4)',
+  neutral:   isLight ? 'rgba(100, 80, 200, 0.8)' : 'rgba(168, 152, 255, 0.7)',
+  confirmed: isLight ? 'rgba(40, 160, 80, 0.75)' : 'rgba(106, 234, 154, 0.7)',
+};
+
+const TRACE_LIGHTNESS = isLight ? 38 : 58;
+
+function initCanvas(canvas, size) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function drawShapeIcon(canvas, shapeName, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const shape = makeShape(shapeName);
+  let maxR = 0;
+  for (let i = 0; i < 200; i++) {
+    const t = (i / 200) * Math.PI * 2;
+    const pt = shape.getPoint(t);
+    const r = Math.sqrt(pt.x * pt.x + pt.y * pt.y);
+    if (r > maxR) maxR = r;
+  }
+  const scale = (size / 2) * 0.7 / (maxR || 1);
+  const cx = size / 2;
+  const cy = size / 2;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i <= 300; i++) {
+    const t = (i / 300) * Math.PI * 2;
+    const pt = shape.getPoint(t);
+    const x = cx + pt.x * scale;
+    const y = cy + pt.y * scale;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawSizeIcon(canvas, level, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const n = 4;
+  const barCount = level + 1;
+  const barW = 3;
+  const gap = 1.5;
+  const totalW = n * barW + (n - 1) * gap;
+  const startX = (size - totalW) / 2;
+  const baseY = size * 0.8;
+  const maxH = size * 0.58;
+  const dim = color.replace(/[\d.]+\)$/, '0.15)');
+  for (let i = 0; i < n; i++) {
+    const h = maxH * ((i + 1) / n);
+    const x = startX + i * (barW + gap);
+    const y = baseY - h;
+    ctx.fillStyle = i < barCount ? color : dim;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, h, 1);
+    ctx.fill();
+  }
+}
+
+function drawReachIcon(canvas, level, color, size) {
+  const ctx = initCanvas(canvas, size);
+  const n = 4;
+  const arcCount = level + 1;
+  const cx = 1;
+  const cy = size - 1;
+  const maxR = size * 0.85;
+  const dim = color.replace(/[\d.]+\)$/, '0.12)');
+  for (let i = 0; i < n; i++) {
+    const r = maxR * ((i + 1) / n);
+    ctx.strokeStyle = i < arcCount ? color : dim;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, 0);
+    ctx.stroke();
+  }
+}
+
+function drawIcon(canvas, paramType, valueIdx, color, size) {
+  if (paramType === 'outer') drawShapeIcon(canvas, currentPuzzle.config.outer[valueIdx], color, size);
+  else if (paramType === 'inner') drawShapeIcon(canvas, currentPuzzle.config.inner[valueIdx], color, size);
+  else if (paramType === 'size') drawSizeIcon(canvas, valueIdx, color, size);
+  else if (paramType === 'reach') drawReachIcon(canvas, valueIdx, color, size);
+}
+
+// ==============================================
+// Audio
+// ==============================================
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration, gain, type) {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const vol = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  vol.gain.value = gain || 0.15;
+  vol.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+  osc.connect(vol);
+  vol.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + duration);
+}
+
+function playLockChime(index) {
+  // Ascending chime for each locked parameter
+  var freqs = [523, 659, 784, 1047]; // C5, E5, G5, C6
+  playTone(freqs[index % freqs.length], 0.5, 0.12, 'sine');
+}
+
+function playWinSound() {
+  if (!soundEnabled) return;
+  var notes = [523, 659, 784, 1047];
+  notes.forEach(function(freq, i) {
+    setTimeout(function() {
+      playTone(freq, 1.5, 0.1, i < 2 ? 'sine' : 'triangle');
+    }, i * 120);
+  });
+}
+
+function playWrongSound() {
+  playTone(220, 0.3, 0.06, 'triangle');
+}
+
+// ==============================================
+// Game State
+// ==============================================
+const PARAM_TYPES  = ['outer', 'inner', 'size', 'reach'];
+const PARAM_LABELS = ['Outer Shape', 'Inner Shape', 'Size', 'Reach'];
+const MAX_GUESSES  = 6;
+
+let guesses          = [];
+let feedback         = [];
+let currentSelection = { outer: null, inner: null, size: null, reach: null };
+let lockedParams     = { outer: false, inner: false, size: false, reach: false };
+let gameOver         = false;
+
+// ==============================================
+// Canvas: Target + Guess Overlay Drawing
+// ==============================================
+let targetCanvas, targetCtx;
+let targetMaxLaps = 1;
+let targetAnimPoints = [];
+let targetDrawIdx = 0;
+let targetAnimId = null;
+
+function initTargetCanvas() {
+  targetCanvas = document.getElementById('target');
+  targetCtx = targetCanvas.getContext('2d');
+  const rect = targetCanvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  targetCanvas.width = rect.width * dpr;
+  targetCanvas.height = rect.height * dpr;
+  targetCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Draw a set of points as a spirograph trace on the canvas
+function drawPointsOnCanvas(points, colorFn, lineWidth, alpha) {
+  if (!points.length) return;
+  const maxR = points[0].maxR;
+  const rect = targetCanvas.parentElement.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  const canvasW = rect.width;
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const px = cx + prev.x * scale;
+    const py = cy + prev.y * scale;
+    const qx = cx + curr.x * scale;
+    const qy = cy + curr.y * scale;
+
+    const jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+    if (jump > canvasW * 0.3) continue;
+
+    targetCtx.strokeStyle = colorFn(i, points.length);
+    targetCtx.lineWidth = lineWidth;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+  }
+}
+
+// Redraw everything: clear canvas, draw target instant, draw guess instant
+function redrawCanvas() {
+  initTargetCanvas();
+
+  // Draw target (all revealed points so far)
+  var hueRange = currentPuzzle.config.hue;
+  drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function(i, total) {
+    var progress = i / total;
+    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
+    var lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
+    return 'hsla(' + hue + ', 65%, ' + lightness + '%, 0.7)';
+  }, 1.5, 0.7);
+
+  // Draw guess overlay if we have selections
+  drawGuessOverlay();
+}
+
+function drawGuessOverlay() {
+  // Build a guess answer from current selections (use answer for locked params)
+  var hasAny = false;
+  var guessAnswer = {};
+  var cfg = currentPuzzle.config;
+
+  // Outer
+  if (currentSelection.outer !== null) {
+    guessAnswer.outer = cfg.outer[currentSelection.outer];
+    hasAny = true;
+  } else return;
+
+  // Inner
+  if (currentSelection.inner !== null) {
+    guessAnswer.inner = cfg.inner[currentSelection.inner];
+    hasAny = true;
+  } else return;
+
+  // Size (ratio)
+  if (currentSelection.size !== null) {
+    guessAnswer.ratio = RATIOS[currentSelection.size];
+    hasAny = true;
+  } else return;
+
+  // Reach (pen)
+  if (currentSelection.reach !== null) {
+    guessAnswer.pen = PENS[currentSelection.reach];
+    hasAny = true;
+  } else return;
+
+  if (!hasAny) return;
+
+  // Compute guess points at same lap count as currently revealed target
+  var guessPoints = computeTargetPoints(guessAnswer, currentPuzzle, targetMaxLaps);
+
+  // Pick contrasting color: cyan for dark mode, blue-purple for light
+  var guessColor = isLight ? 'rgba(60, 130, 220, 0.55)' : 'rgba(0, 230, 255, 0.45)';
+
+  drawPointsOnCanvas(guessPoints, function() {
+    return guessColor;
+  }, 1.8, 0.5);
+}
+
+// Animated drawing of target
+function animateTarget() {
+  targetAnimId = null;
+  if (!targetAnimPoints.length) return;
+
+  var spd = currentPuzzle.config.speed;
+  var batchSize = Math.max(1, Math.round(3 * spd));
+  var end = Math.min(targetDrawIdx + batchSize, targetAnimPoints.length);
+
+  // Draw just the new segment on top (no clearing for perf during animation)
+  var hueRange = currentPuzzle.config.hue;
+  var rect = targetCanvas.parentElement.getBoundingClientRect();
+  var cx = rect.width / 2;
+  var cy = rect.height / 2;
+  var maxR = targetAnimPoints[0].maxR;
+  var scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  var canvasW = rect.width;
+
+  for (var i = targetDrawIdx; i < end; i++) {
+    if (i === 0) { targetDrawIdx = i + 1; continue; }
+    var prev = targetAnimPoints[i - 1];
+    var curr = targetAnimPoints[i];
+    var px = cx + prev.x * scale;
+    var py = cy + prev.y * scale;
+    var qx = cx + curr.x * scale;
+    var qy = cy + curr.y * scale;
+
+    var jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+    if (jump > canvasW * 0.3) { targetDrawIdx = i + 1; continue; }
+
+    var progress = i / targetAnimPoints.length;
+    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
+    var lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
+    targetCtx.strokeStyle = 'hsla(' + hue + ', 65%, ' + lightness + '%, 0.7)';
+    targetCtx.lineWidth = 1.5;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+
+    targetDrawIdx = i + 1;
+  }
+
+  if (targetDrawIdx < targetAnimPoints.length) {
+    targetAnimId = requestAnimationFrame(animateTarget);
+  }
+}
+
+function startTarget() {
+  initTargetCanvas();
+  targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  targetDrawIdx = 0;
+  animateTarget();
+}
+
+function revealMoreLaps(newLapCount) {
+  if (targetAnimId) { cancelAnimationFrame(targetAnimId); targetAnimId = null; }
+  var oldCount = targetAnimPoints.length;
+  targetMaxLaps = newLapCount;
+  targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  targetDrawIdx = Math.min(oldCount, targetAnimPoints.length);
+  // Redraw everything cleanly then continue animating new points
+  redrawCanvas();
+  if (targetDrawIdx < targetAnimPoints.length) {
+    animateTarget();
+  }
+}
+
+// ==============================================
+// Pickers
+// ==============================================
+function buildPickers() {
+  const area = document.getElementById('pickersArea');
+  for (let paramIdx = 0; paramIdx < 4; paramIdx++) {
+    const paramType = PARAM_TYPES[paramIdx];
+    const label = PARAM_LABELS[paramIdx];
+
+    const group = document.createElement('div');
+    group.className = 'picker-group';
+    group.id = 'group-' + paramType;
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'picker-label';
+    labelEl.textContent = label;
+    group.appendChild(labelEl);
+
+    const optionsEl = document.createElement('div');
+    optionsEl.className = 'picker-options';
+    optionsEl.id = 'picker-' + paramType;
+
+    for (let valueIdx = 0; valueIdx < 4; valueIdx++) {
+      const optEl = document.createElement('div');
+      optEl.className = 'picker-option';
+      optEl.dataset.param = paramType;
+      optEl.dataset.idx = valueIdx;
+
+      const cv = document.createElement('canvas');
+      drawIcon(cv, paramType, valueIdx, FEEDBACK_COLORS.neutral, 28);
+      optEl.appendChild(cv);
+
+      optEl.addEventListener('click', () => onPickerTap(paramType, valueIdx, optEl));
+      optionsEl.appendChild(optEl);
+    }
+
+    group.appendChild(optionsEl);
+    area.appendChild(group);
+  }
+}
+
+function onPickerTap(paramType, valueIdx, optEl) {
+  if (gameOver) return;
+  if (lockedParams[paramType]) return;
+
+  const pickerGroup = document.getElementById('picker-' + paramType);
+  pickerGroup.querySelectorAll('.picker-option').forEach(el => {
+    if (!el.classList.contains('confirmed')) {
+      el.classList.remove('selected');
+    }
+  });
+
+  optEl.classList.add('selected');
+  currentSelection[paramType] = valueIdx;
+
+  checkRollReady();
+
+  // Live preview: redraw canvas with new guess overlay
+  redrawCanvas();
+}
+
+function checkRollReady() {
+  // All unlocked params must be selected
+  const allSelected = PARAM_TYPES.every(p => lockedParams[p] || currentSelection[p] !== null);
+  const rollBtn = document.getElementById('rollBtn');
+  if (allSelected && !gameOver) {
+    rollBtn.removeAttribute('disabled');
+  } else {
+    rollBtn.setAttribute('disabled', '');
+  }
+}
+
+function updateGuessCount() {
+  var remaining = MAX_GUESSES - guesses.length;
+  document.getElementById('guessStatus').textContent = remaining + ' guess' + (remaining === 1 ? '' : 'es') + ' left';
+}
+
+// ==============================================
+// Lap Schedule
+// ==============================================
+function getLapsSchedule() {
+  var init = currentPuzzle.config.initLaps;
+  var step = (10 - init) / MAX_GUESSES;
+  var sched = [init];
+  for (var i = 1; i <= MAX_GUESSES; i++) sched.push(init + step * i);
+  return sched;
+}
+
+// ==============================================
+// Roll (Guess Submission)
+// ==============================================
+function submitGuess() {
+  if (gameOver) return;
+  const allReady = PARAM_TYPES.every(p => lockedParams[p] || currentSelection[p] !== null);
+  if (!allReady) return;
+
+  const guess = {
+    outer: currentSelection.outer,
+    inner: currentSelection.inner,
+    size:  currentSelection.size,
+    reach: currentSelection.reach,
+  };
+
+  // Block duplicate guesses
+  var isDupe = guesses.some(function(prev) {
+    return prev.outer === guess.outer && prev.inner === guess.inner &&
+           prev.size === guess.size && prev.reach === guess.reach;
+  });
+  if (isDupe) {
+    document.getElementById('guessStatus').textContent = 'Already tried!';
+    setTimeout(function() { updateGuessCount(); }, 1500);
+    return;
+  }
+
+  // Check each parameter individually
+  const answerIndices = {
+    outer: currentPuzzle.outerIdx,
+    inner: currentPuzzle.innerIdx,
+    size:  currentPuzzle.ratioIdx,
+    reach: currentPuzzle.penIdx,
+  };
+
+  var paramResults = {};
+  var newLocks = [];
+
+  PARAM_TYPES.forEach(function(p) {
+    if (lockedParams[p]) {
+      paramResults[p] = 'intune'; // already locked
+    } else if (guess[p] === answerIndices[p]) {
+      paramResults[p] = 'intune';
+      newLocks.push(p);
+    } else if (Math.abs(guess[p] - answerIndices[p]) === 1) {
+      paramResults[p] = 'close';
+    } else {
+      paramResults[p] = 'off';
+    }
+  });
+
+  // Store feedback as array in order
+  var fb = PARAM_TYPES.map(function(p) { return paramResults[p]; });
+
+  guesses.push(guess);
+  feedback.push(fb);
+
+  // Animate: lock newly correct params with chimes
+  animateRollResult(paramResults, newLocks, fb);
+}
+
+function animateRollResult(paramResults, newLocks, fb) {
+  // Show result cluster in strip
+  var sorted = fb.slice().sort(function(a, b) {
+    var order = { intune: 0, close: 1, off: 2 };
+    return order[a] - order[b];
+  });
+
+  var strip = document.getElementById('resultStrip');
+  var cluster = document.createElement('div');
+  cluster.className = 'result-cluster';
+  var lines = [];
+  for (var i = 0; i < 4; i++) {
+    var line = document.createElement('span');
+    line.className = 'r-line';
+    cluster.appendChild(line);
+    lines.push(line);
+  }
+  strip.appendChild(cluster);
+
+  // Animate lines
+  for (var i = 0; i < 4; i++) {
+    (function(idx) {
+      setTimeout(function() {
+        lines[idx].classList.add(sorted[idx]);
+      }, idx * 150);
+    })(i);
+  }
+
+  // After strip animation, lock correct params with chimes
+  var lockDelay = 4 * 150 + 200;
+  var chimeIdx = 0;
+
+  if (newLocks.length > 0) {
+    newLocks.forEach(function(paramType, li) {
+      setTimeout(function() {
+        lockedParams[paramType] = true;
+        // Visually lock the correct option
+        var picker = document.getElementById('picker-' + paramType);
+        picker.querySelectorAll('.picker-option').forEach(function(opt) {
+          opt.classList.remove('selected');
+          if (parseInt(opt.dataset.idx) === currentSelection[paramType]) {
+            opt.classList.add('confirmed');
+            // Redraw icon in green
+            var cv = opt.querySelector('canvas');
+            drawIcon(cv, paramType, parseInt(opt.dataset.idx), FEEDBACK_COLORS.confirmed, 28);
+          }
+        });
+        // Mark group as locked
+        document.getElementById('group-' + paramType).classList.add('locked');
+
+        playLockChime(li);
+      }, lockDelay + li * 300);
+    });
+  } else {
+    // No new locks — play wrong sound
+    setTimeout(function() { playWrongSound(); }, lockDelay);
+  }
+
+  // After all animations, check win/lose
+  var totalDelay = lockDelay + newLocks.length * 300 + 200;
+  setTimeout(function() {
+    onRollComplete(fb);
+  }, totalDelay);
+}
+
+function onRollComplete(fb) {
+  var allLocked = PARAM_TYPES.every(function(p) { return lockedParams[p]; });
+
+  if (allLocked) {
+    gameOver = true;
+    onWin();
+    return;
+  }
+
+  if (guesses.length >= MAX_GUESSES) {
+    gameOver = true;
+    onLose();
+    return;
+  }
+
+  // Reveal more of the target
+  revealMoreLaps(getLapsSchedule()[guesses.length] || 10);
+
+  saveGameState();
+  updateGuessCount();
+  checkRollReady();
+}
+
+// ==============================================
+// Win / Lose
+// ==============================================
+function onWin() {
+  playWinSound();
+  revealMoreLaps(12);
+  saveGameState();
+  document.getElementById('rollBtn').setAttribute('disabled', '');
+  document.getElementById('guessStatus').textContent = 'Perfect match!';
+
+  // Redraw canvas — both spirographs now identical, they overlap
+  setTimeout(function() { redrawCanvas(); }, 300);
+  showEndModal(true);
+}
+
+function onLose() {
+  // Lock all to reveal answer
+  var answerIndices = {
+    outer: currentPuzzle.outerIdx,
+    inner: currentPuzzle.innerIdx,
+    size:  currentPuzzle.ratioIdx,
+    reach: currentPuzzle.penIdx,
+  };
+
+  PARAM_TYPES.forEach(function(p) {
+    lockedParams[p] = true;
+    currentSelection[p] = answerIndices[p];
+    var picker = document.getElementById('picker-' + p);
+    picker.querySelectorAll('.picker-option').forEach(function(opt) {
+      opt.classList.remove('selected', 'confirmed');
+      if (parseInt(opt.dataset.idx) === answerIndices[p]) {
+        opt.classList.add('confirmed');
+        var cv = opt.querySelector('canvas');
+        drawIcon(cv, p, answerIndices[p], FEEDBACK_COLORS.confirmed, 28);
+      }
+    });
+    document.getElementById('group-' + p).classList.add('locked');
+  });
+
+  revealMoreLaps(12);
+  saveGameState();
+  document.getElementById('rollBtn').setAttribute('disabled', '');
+  document.getElementById('guessStatus').textContent = 'Next time!';
+
+  setTimeout(function() { redrawCanvas(); }, 300);
+  showEndModal(false);
+}
+
+function shareResult() {
+  var emojis = { intune: '\u{1F7E2}', close: '\u{1F7E1}', off: '\u26AB' };
+  var allLocked = PARAM_TYPES.every(function(p) { return lockedParams[p]; }) && guesses.length <= MAX_GUESSES;
+  var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
+  // Check if won by all locks
+  if (!won) {
+    won = allLocked && guesses.length < MAX_GUESSES;
+  }
+  var score = won ? feedback.length + '/6' : 'X/6';
+  var text = 'Loople Lab #' + currentPuzzle.dayNum + ' ' + score + '\n\n';
+  for (var i = 0; i < feedback.length; i++) {
+    var sorted = feedback[i].slice().sort(function(a, b) {
+      var order = { intune: 0, close: 1, off: 2 };
+      return order[a] - order[b];
+    });
+    text += sorted.map(function(f) { return emojis[f]; }).join('') + '\n';
+  }
+  navigator.clipboard.writeText(text.trim()).then(function() {
+    var el = document.getElementById('guessStatus');
+    var prev = el.textContent;
+    el.textContent = 'Copied!';
+    setTimeout(function() { el.textContent = prev; }, 2000);
+  });
+}
+
+function showEndModal(won) {
+  document.getElementById('endTitle').textContent = won ? 'Perfect Match!' : 'Not Quite';
+
+  var endDots = document.getElementById('endDots');
+  while (endDots.firstChild) endDots.removeChild(endDots.firstChild);
+  endDots.style.cssText = 'display:flex;gap:8px;justify-content:center;';
+  for (var i = 0; i < feedback.length; i++) {
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
+    var sorted = feedback[i].slice().sort(function(a, b) {
+      var order = { intune: 0, close: 1, off: 2 };
+      return order[a] - order[b];
+    });
+    for (var d = 0; d < 4; d++) {
+      var line = document.createElement('span');
+      line.className = 'r-line ' + sorted[d];
+      cluster.appendChild(line);
+    }
+    endDots.appendChild(cluster);
+  }
+
+  var answer = document.getElementById('endAnswer');
+  while (answer.firstChild) answer.removeChild(answer.firstChild);
+  var line1 = document.createElement('div');
+  line1.textContent = won
+    ? 'You got it in ' + feedback.length + '!'
+    : 'The answer was:';
+  answer.appendChild(line1);
+  var line2 = document.createElement('div');
+  var b = document.createElement('strong');
+  b.textContent = currentAnswer.outer + ' \u00D7 ' + currentAnswer.inner +
+    ' \u00B7 size ' + (currentPuzzle.ratioIdx + 1) + ' \u00B7 reach ' + (currentPuzzle.penIdx + 1);
+  line2.appendChild(b);
+  answer.appendChild(line2);
+
+  document.getElementById('endShare').onclick = function() {
+    shareResult();
+    this.textContent = 'Copied!';
+    setTimeout(function() {
+      document.getElementById('endShare').textContent = 'Share';
+    }, 2000);
+  };
+  document.getElementById('endClose').onclick = function() {
+    document.getElementById('endModal').classList.remove('open');
+  };
+  document.getElementById('endCloseBtn').onclick = function() {
+    document.getElementById('endModal').classList.remove('open');
+  };
+
+  setTimeout(function() {
+    document.getElementById('endModal').classList.add('open');
+  }, 1200);
+}
+
+// ==============================================
+// Game State Persistence
+// ==============================================
+function saveGameState() {
+  localStorage.setItem('loople-lab-state', JSON.stringify({
+    dateStr: currentPuzzle.dateStr,
+    guesses: guesses,
+    feedback: feedback,
+    gameOver: gameOver,
+    lockedParams: lockedParams,
+    currentSelection: currentSelection,
+  }));
+}
+
+function loadGameState() {
+  try {
+    var state = JSON.parse(localStorage.getItem('loople-lab-state'));
+    if (!state || state.dateStr !== currentPuzzle.dateStr) return null;
+    return state;
+  } catch(e) { return null; }
+}
+
+function restoreGameState() {
+  var state = loadGameState();
+  if (!state) return;
+
+  guesses = state.guesses || [];
+  feedback = state.feedback || [];
+  lockedParams = state.lockedParams || { outer: false, inner: false, size: false, reach: false };
+  currentSelection = state.currentSelection || { outer: null, inner: null, size: null, reach: null };
+  gameOver = state.gameOver;
+
+  // Restore result strip
+  for (var g = 0; g < feedback.length; g++) {
+    var sorted = feedback[g].slice().sort(function(a, b) {
+      var order = { intune: 0, close: 1, off: 2 };
+      return order[a] - order[b];
+    });
+    var strip = document.getElementById('resultStrip');
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
+    for (var d = 0; d < 4; d++) {
+      var line = document.createElement('span');
+      line.className = 'r-line ' + sorted[d];
+      cluster.appendChild(line);
+    }
+    strip.appendChild(cluster);
+  }
+
+  // Restore picker states
+  PARAM_TYPES.forEach(function(paramType) {
+    var picker = document.getElementById('picker-' + paramType);
+    picker.querySelectorAll('.picker-option').forEach(function(opt) {
+      var idx = parseInt(opt.dataset.idx);
+      if (lockedParams[paramType] && idx === currentSelection[paramType]) {
+        opt.classList.add('confirmed');
+        var cv = opt.querySelector('canvas');
+        drawIcon(cv, paramType, idx, FEEDBACK_COLORS.confirmed, 28);
+        document.getElementById('group-' + paramType).classList.add('locked');
+      } else if (!lockedParams[paramType] && idx === currentSelection[paramType]) {
+        opt.classList.add('selected');
+      }
+    });
+  });
+
+  // Set target lap count
+  if (gameOver) {
+    targetMaxLaps = 12;
+  } else {
+    targetMaxLaps = getLapsSchedule()[guesses.length] || 10;
+  }
+
+  // Redraw target at correct lap count (instant)
+  targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  targetDrawIdx = targetAnimPoints.length;
+  redrawCanvas();
+
+  if (gameOver) {
+    document.getElementById('rollBtn').setAttribute('disabled', '');
+    var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
+    if (!won) {
+      won = PARAM_TYPES.every(function(p) { return lockedParams[p]; });
+    }
+    document.getElementById('guessStatus').textContent = won ? 'Perfect match!' : 'Next time!';
+    showEndModal(won);
+  } else {
+    updateGuessCount();
+    checkRollReady();
+  }
+}
+
+// ==============================================
+// Test Bar
+// ==============================================
+function wireTestBar() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('day') === null && !params.has('test')) return;
+
+  var bar = document.getElementById('testBar');
+  bar.classList.add('visible');
+  document.querySelector('.game').style.paddingBottom = '40px';
+  var currentDay = parseInt(params.get('day') || '0');
+  document.getElementById('testDay').textContent = 'Day ' + currentDay;
+
+  document.getElementById('testPrev').addEventListener('click', function() {
+    var d = Math.max(0, currentDay - 1);
+    window.location.search = '?day=' + d;
+  });
+  document.getElementById('testNext').addEventListener('click', function() {
+    window.location.search = '?day=' + (currentDay + 1);
+  });
+  document.getElementById('testReset').addEventListener('click', function() {
+    localStorage.removeItem('loople-lab-state');
+    window.location.reload();
+  });
+}
+
+// ==============================================
+// Initialization
+// ==============================================
+const currentPuzzle = getDailyPuzzle();
+const currentAnswer = getPuzzleAnswer(currentPuzzle);
+var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum + ' \u00B7 ' + DAY_NAMES[currentPuzzle.weekDay];
+targetMaxLaps = currentPuzzle.config.initLaps;
+startTarget();
+window.addEventListener('resize', redrawCanvas);
+buildPickers();
+updateGuessCount();
+document.getElementById('rollBtn').addEventListener('click', submitGuess);
+wireTestBar();
+
+// Sound toggle
+soundEnabled = localStorage.getItem('loople-lab-sound') !== 'false';
+var soundBtn = document.getElementById('btnSound');
+if (soundEnabled) soundBtn.classList.add('active');
+soundBtn.addEventListener('click', function() {
+  soundEnabled = !soundEnabled;
+  soundBtn.classList.toggle('active', soundEnabled);
+  localStorage.setItem('loople-lab-sound', String(soundEnabled));
+  if (soundEnabled) getAudioCtx();
+});
+
+restoreGameState();
+</script>
+</body>
+</html>
