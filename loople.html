@@ -174,15 +174,15 @@
      Target canvas (180px circle)
   ===================== */
   .target-wrap {
-    flex: 1 1 auto;
+    flex-shrink: 1;
+    width: 100%;
+    max-width: min(280px, calc(100vh - 380px));
     aspect-ratio: 1;
-    max-width: 280px;
-    min-height: 0;
     position: relative;
     border-radius: 50%;
     background: radial-gradient(circle, var(--target-bg1) 0%, var(--target-bg2) 70%);
     border: 1px solid var(--border3);
-    margin: 4px 0;
+    margin: 4px auto;
   }
   .target-wrap canvas {
     width: 100%;
@@ -488,6 +488,55 @@
   .help-dot.close { background: var(--cell-close-bg); border: 1px solid var(--cell-close-border); }
   .help-dot.off { background: var(--cell-off-bg); border: 1px solid var(--cell-off-border); }
 
+  /* End-of-game modal */
+  .end-content {
+    text-align: center;
+  }
+  .end-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .end-dots .guess-dot {
+    width: 14px;
+    height: 14px;
+  }
+  .end-answer {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .end-answer strong {
+    color: var(--text2);
+  }
+  .end-share {
+    width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid var(--picker-selected);
+    background: var(--picker-selected-bg);
+    color: var(--picker-selected);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .end-close {
+    width: 100%;
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
   /* Feedback form */
   .feedback-content { font-size: 13px; }
   .fb-intro { color: var(--muted); font-size: 12px; margin-bottom: 14px; line-height: 1.5; }
@@ -774,6 +823,19 @@
 
       <button class="fb-submit" id="fbSubmit">Send Feedback</button>
       <div class="fb-thanks" id="fbThanks">Thanks for your feedback!</div>
+    </div>
+  </div>
+</div>
+
+<!-- End-of-game modal -->
+<div class="modal-overlay" id="endModal">
+  <div class="modal">
+    <div class="modal-title" id="endTitle">In Tune!</div>
+    <div class="end-content">
+      <div class="end-dots" id="endDots"></div>
+      <div class="end-answer" id="endAnswer"></div>
+      <button class="end-share" id="endShare">Share</button>
+      <button class="end-close" id="endClose">Close</button>
     </div>
   </div>
 </div>
@@ -1492,29 +1554,76 @@ function shareResult() {
   });
 }
 
+function showEndModal(won) {
+  updateGuessCount(); // make sure dots are current
+  document.getElementById('endTitle').textContent = won ? 'In Tune! \u{1F3B5}' : 'Not Quite';
+
+  // Copy dots into modal
+  var endDots = document.getElementById('endDots');
+  while (endDots.firstChild) endDots.removeChild(endDots.firstChild);
+  for (var i = 0; i < MAX_GUESSES; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'guess-dot';
+    if (i < feedback.length) {
+      var fb = feedback[i];
+      var hasIntune = fb.some(function(f) { return f === 'intune'; });
+      var hasClose = fb.some(function(f) { return f === 'close'; });
+      if (hasIntune) dot.classList.add('green');
+      else if (hasClose) dot.classList.add('yellow');
+      else dot.classList.add('gray');
+    }
+    endDots.appendChild(dot);
+  }
+
+  // Show answer
+  var answer = document.getElementById('endAnswer');
+  while (answer.firstChild) answer.removeChild(answer.firstChild);
+  var line1 = document.createElement('div');
+  line1.textContent = won
+    ? 'You got it in ' + feedback.length + '!'
+    : 'The answer was:';
+  answer.appendChild(line1);
+  var line2 = document.createElement('div');
+  var b = document.createElement('strong');
+  b.textContent = currentAnswer.outer + ' \u00D7 ' + currentAnswer.inner;
+  line2.appendChild(b);
+  answer.appendChild(line2);
+
+  // Wire share and close
+  document.getElementById('endShare').onclick = function() {
+    shareResult();
+    this.textContent = 'Copied!';
+    setTimeout(function() {
+      document.getElementById('endShare').textContent = 'Share';
+    }, 2000);
+  };
+  document.getElementById('endClose').onclick = function() {
+    document.getElementById('endModal').classList.remove('open');
+  };
+
+  // Show after a brief delay for the last feedback animation
+  setTimeout(function() {
+    document.getElementById('endModal').classList.add('open');
+  }, 1200);
+}
+
 function onWin() {
   playWinSound();
   revealMoreLaps(12);
   saveStats(true);
   saveGameState();
-  const btn = document.getElementById('rollBtn');
-  btn.textContent = 'Share';
-  btn.removeAttribute('disabled');
-  btn.removeEventListener('click', submitGuess);
-  btn.addEventListener('click', shareResult);
+  document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'In tune! \u{1F3B5}';
+  showEndModal(true);
 }
 
 function onLose() {
   revealMoreLaps(12);
   saveStats(false);
   saveGameState();
-  const btn = document.getElementById('rollBtn');
-  btn.textContent = 'Share';
-  btn.removeAttribute('disabled');
-  btn.removeEventListener('click', submitGuess);
-  btn.addEventListener('click', shareResult);
-  document.getElementById('guessStatus').textContent = currentAnswer.outer + ' + ' + currentAnswer.inner;
+  document.getElementById('rollBtn').setAttribute('disabled', '');
+  document.getElementById('guessStatus').textContent = 'Next time!';
+  showEndModal(false);
 }
 
 // ==============================================
@@ -1691,18 +1800,11 @@ function restoreGameState() {
   gameOver = state.gameOver;
 
   if (gameOver) {
-    var btn = document.getElementById('rollBtn');
-    btn.textContent = 'Share';
-    btn.removeAttribute('disabled');
-    btn.removeEventListener('click', submitGuess);
-    btn.addEventListener('click', shareResult);
-
+    document.getElementById('rollBtn').setAttribute('disabled', '');
     var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
-    if (won) {
-      document.getElementById('guessStatus').textContent = 'In tune! \u{1F3B5}';
-    } else {
-      document.getElementById('guessStatus').textContent = currentAnswer.outer + ' + ' + currentAnswer.inner;
-    }
+    document.getElementById('guessStatus').textContent = won ? 'In tune! \u{1F3B5}' : 'Next time!';
+    updateGuessCount();
+    showEndModal(won);
   } else {
     resetSelectionForNextGuess();
     updateGuessCount();
@@ -1831,6 +1933,7 @@ function wireTestBar() {
 
   var bar = document.getElementById('testBar');
   bar.classList.add('visible');
+  document.querySelector('.game').style.paddingBottom = '40px';
   var currentDay = parseInt(params.get('day') || '0');
   document.getElementById('testDay').textContent = 'Day ' + currentDay;
 
