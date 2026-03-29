@@ -190,63 +190,14 @@
   /* =====================
      Guess grid
   ===================== */
-  .guess-grid {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex-shrink: 1;
-    margin: 4px 0;
-    min-height: 0;
-    overflow: hidden;
+  /* Picker feedback animation */
+  .picker-option.close-hint {
+    border-color: var(--cell-close-border);
+    background: var(--cell-close-bg);
   }
-  .grid-header {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    margin-bottom: 2px;
-  }
-  .grid-header span {
-    text-align: center;
-    font-size: 8px;
-    color: var(--muted3);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .guess-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-  }
-  .guess-cell {
-    height: 32px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .guess-cell canvas {
-    width: 26px;
-    height: 26px;
-  }
-
-  /* Cell state classes */
-  .cell-intune  { background: var(--cell-intune-bg); border: 1px solid var(--cell-intune-border); }
-  .cell-close   { background: var(--cell-close-bg); border: 1px solid var(--cell-close-border); }
-  .cell-off     { background: var(--cell-off-bg); border: 1px solid var(--cell-off-border); }
-  .cell-empty   { background: var(--cell-empty-bg); border: 1px solid var(--cell-empty-border); }
-  .cell-pending { background: var(--cell-pending-bg); border: 1px solid var(--cell-pending-border); }
-
-  /* =====================
-     Divider
-  ===================== */
-  .divider {
-    width: 50%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--divider), transparent);
-    flex-shrink: 0;
-    margin: 4px 0;
+  .picker-option.off-flash {
+    opacity: 0.2;
+    transition: opacity 0.4s ease;
   }
 
   /* =====================
@@ -619,20 +570,6 @@
   <div class="target-wrap">
     <canvas id="target"></canvas>
   </div>
-
-  <!-- Guess grid — JS will populate rows -->
-  <div class="guess-grid" id="guessGrid">
-    <div class="grid-header">
-      <span>Outer</span>
-      <span>Inner</span>
-      <span>Size</span>
-      <span>Reach</span>
-    </div>
-    <!-- rows injected by game script -->
-  </div>
-
-  <!-- Divider -->
-  <div class="divider"></div>
 
   <!-- Pickers area — JS will populate -->
   <div class="pickers-area" id="pickersArea">
@@ -1251,25 +1188,6 @@ let currentSelection = { outer: null, inner: null, size: null, reach: null };
 let gameOver         = false;
 
 // ==============================================
-// Guess Grid Builder
-// ==============================================
-function buildGuessRows() {
-  const grid = document.getElementById('guessGrid');
-  for (let row = 0; row < MAX_GUESSES; row++) {
-    const rowEl = document.createElement('div');
-    rowEl.className = 'guess-row';
-    rowEl.id = 'row-' + row;
-    for (let col = 0; col < 4; col++) {
-      const cell = document.createElement('div');
-      cell.className = 'guess-cell cell-empty';
-      cell.id = 'cell-' + row + '-' + col;
-      rowEl.appendChild(cell);
-    }
-    grid.appendChild(rowEl);
-  }
-}
-
-// ==============================================
 // Pickers Builder
 // ==============================================
 function buildPickers() {
@@ -1334,7 +1252,6 @@ function onPickerTap(paramType, valueIdx, optEl) {
   optEl.classList.add('selected');
   currentSelection[paramType] = valueIdx;
 
-  updateCurrentRowPreview();
   checkRollReady();
 }
 
@@ -1344,26 +1261,7 @@ function clearCellChildren(cell) {
   }
 }
 
-function updateCurrentRowPreview() {
-  const rowIdx = guesses.length;
-  if (rowIdx >= MAX_GUESSES) return;
 
-  PARAM_TYPES.forEach((paramType, col) => {
-    const cell = document.getElementById('cell-' + rowIdx + '-' + col);
-    const selIdx = currentSelection[paramType];
-
-    if (selIdx !== null) {
-      cell.className = 'guess-cell cell-pending';
-      clearCellChildren(cell);
-      const cv = document.createElement('canvas');
-      drawIcon(cv, paramType, selIdx, 'rgba(122, 106, 238, 0.7)', 26);
-      cell.appendChild(cv);
-    } else {
-      cell.className = 'guess-cell cell-empty';
-      clearCellChildren(cell);
-    }
-  });
-}
 
 function checkRollReady() {
   const allSelected = PARAM_TYPES.every(p => currentSelection[p] !== null);
@@ -1376,7 +1274,8 @@ function checkRollReady() {
 }
 
 function updateGuessCount() {
-  document.getElementById('guessCount').textContent = (guesses.length + 1) + ' of 6';
+  var remaining = MAX_GUESSES - guesses.length;
+  document.getElementById('guessCount').textContent = remaining + ' guess' + (remaining === 1 ? '' : 'es') + ' left';
 }
 
 // ==============================================
@@ -1427,22 +1326,36 @@ function submitGuess() {
 function animateFeedback(rowIdx, guess, fb) {
   const guessValues = [guess.outer, guess.inner, guess.size, guess.reach];
 
-  for (let cellIdx = 0; cellIdx < 4; cellIdx++) {
+  for (let ci = 0; ci < 4; ci++) {
     (function(ci) {
       setTimeout(function() {
-        const cell = document.getElementById('cell-' + rowIdx + '-' + ci);
-        cell.className = 'guess-cell cell-' + fb[ci];
-        clearCellChildren(cell);
-        const canvas = document.createElement('canvas');
-        cell.appendChild(canvas);
-        drawIcon(canvas, PARAM_TYPES[ci], guessValues[ci], FEEDBACK_COLORS[fb[ci]], 26);
-        playFeedbackSound(fb[ci], ci);
+        var paramType = PARAM_TYPES[ci];
+        var guessIdx = guessValues[ci];
+        var state = fb[ci];
+        var picker = document.getElementById('picker-' + paramType);
+        var opt = picker.querySelectorAll('.picker-option')[guessIdx];
+
+        // Apply feedback state to the picker option
+        opt.classList.remove('selected');
+        if (state === 'intune') {
+          opt.classList.add('confirmed');
+          clearCellChildren(opt);
+          var cv = document.createElement('canvas');
+          drawIcon(cv, paramType, guessIdx, FEEDBACK_COLORS.confirmed, 28);
+          opt.appendChild(cv);
+        } else if (state === 'close') {
+          opt.classList.add('close-hint');
+        } else {
+          opt.classList.add('eliminated');
+        }
+
+        playFeedbackSound(state, ci);
 
         if (ci === 3) {
           onFeedbackComplete(rowIdx, fb);
         }
       }, ci * 200);
-    })(cellIdx);
+    })(ci);
   }
 }
 
@@ -1470,43 +1383,42 @@ function onFeedbackComplete(rowIdx, fb) {
 // ==============================================
 function updatePickerStates() {
   PARAM_TYPES.forEach(function(paramType, paramIdx) {
-    const picker = document.getElementById('picker-' + paramType);
-    const options = picker.querySelectorAll('.picker-option');
+    var picker = document.getElementById('picker-' + paramType);
+    var options = picker.querySelectorAll('.picker-option');
 
-    // Find confirmed index and off indices for this param
-    let confirmedIdx = null;
-    const offIndices = new Set();
+    var confirmedIdx = null;
+    var closeIndices = new Set();
+    var offIndices = new Set();
 
-    for (let g = 0; g < guesses.length; g++) {
-      const guessVal = [guesses[g].outer, guesses[g].inner, guesses[g].size, guesses[g].reach][paramIdx];
-      const fb = feedback[g][paramIdx];
-      if (fb === 'intune') {
-        confirmedIdx = guessVal;
-      } else if (fb === 'off') {
-        offIndices.add(guessVal);
-      }
+    for (var g = 0; g < guesses.length; g++) {
+      var guessVal = [guesses[g].outer, guesses[g].inner, guesses[g].size, guesses[g].reach][paramIdx];
+      var fb = feedback[g][paramIdx];
+      if (fb === 'intune') confirmedIdx = guessVal;
+      else if (fb === 'close') closeIndices.add(guessVal);
+      else if (fb === 'off') offIndices.add(guessVal);
     }
 
     options.forEach(function(optEl) {
-      const idx = parseInt(optEl.dataset.idx, 10);
+      var idx = parseInt(optEl.dataset.idx, 10);
       optEl.classList.remove('selected');
 
       if (confirmedIdx !== null && idx === confirmedIdx) {
         optEl.classList.add('confirmed');
-        optEl.classList.remove('eliminated');
+        optEl.classList.remove('eliminated', 'close-hint');
         currentSelection[paramType] = idx;
-        // Redraw icon with confirmed color
         clearCellChildren(optEl);
-        const cv = document.createElement('canvas');
+        var cv = document.createElement('canvas');
         drawIcon(cv, paramType, idx, FEEDBACK_COLORS.confirmed, 28);
         optEl.appendChild(cv);
       } else if (confirmedIdx !== null) {
-        // Param is confirmed, eliminate all others
         optEl.classList.add('eliminated');
-        optEl.classList.remove('confirmed');
+        optEl.classList.remove('confirmed', 'close-hint');
       } else if (offIndices.has(idx)) {
         optEl.classList.add('eliminated');
-        optEl.classList.remove('confirmed');
+        optEl.classList.remove('confirmed', 'close-hint');
+      } else if (closeIndices.has(idx)) {
+        optEl.classList.add('close-hint');
+        optEl.classList.remove('eliminated', 'confirmed');
       }
     });
   });
@@ -1514,14 +1426,12 @@ function updatePickerStates() {
 
 function resetSelectionForNextGuess() {
   PARAM_TYPES.forEach(function(paramType) {
-    // Check if this param is confirmed
-    const picker = document.getElementById('picker-' + paramType);
-    const hasConfirmed = picker.querySelector('.picker-option.confirmed');
+    var picker = document.getElementById('picker-' + paramType);
+    var hasConfirmed = picker.querySelector('.picker-option.confirmed');
     if (!hasConfirmed) {
       currentSelection[paramType] = null;
     }
   });
-  updateCurrentRowPreview();
 }
 
 // ==============================================
@@ -1723,19 +1633,6 @@ function restoreGameState() {
   for (var g = 0; g < state.guesses.length; g++) {
     guesses.push(state.guesses[g]);
     feedback.push(state.feedback[g]);
-
-    var guess = state.guesses[g];
-    var fb = state.feedback[g];
-    var guessValues = [guess.outer, guess.inner, guess.size, guess.reach];
-
-    for (var ci = 0; ci < 4; ci++) {
-      var cell = document.getElementById('cell-' + g + '-' + ci);
-      cell.className = 'guess-cell cell-' + fb[ci];
-      clearCellChildren(cell);
-      var canvas = document.createElement('canvas');
-      cell.appendChild(canvas);
-      drawIcon(canvas, PARAM_TYPES[ci], guessValues[ci], FEEDBACK_COLORS[fb[ci]], 26);
-    }
   }
 
   // Set target lap count based on progress
@@ -1919,7 +1816,6 @@ const currentAnswer = getPuzzleAnswer(currentPuzzle);
 document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum;
 startTarget();
 window.addEventListener('resize', redrawTargetInstant);
-buildGuessRows();
 buildPickers();
 updateGuessCount();
 document.getElementById('rollBtn').addEventListener('click', submitGuess);
