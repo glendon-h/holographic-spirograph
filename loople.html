@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Spirle</title>
+<title>Loople</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
@@ -603,7 +603,7 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <h1>Spirle</h1>
+      <h1>Loople</h1>
       <span class="puzzle-num" id="puzzleNum">#1</span>
     </div>
     <div class="header-right">
@@ -737,7 +737,7 @@
     <div class="modal-title">How to Play</div>
     <div class="modal-close" id="helpClose">&#10005;</div>
     <div class="help-content">
-      <p class="beta-note">Thanks for testing Spirle! This is an early build — your feedback helps shape the game. Use the &#9993; button to share your thoughts.</p>
+      <p class="beta-note">Thanks for testing Loople! This is an early build — your feedback helps shape the game. Use the &#9993; button to share your thoughts.</p>
       <p>Guess the spirograph in 6 tries.</p>
       <p>Every spirograph is built from <strong>4 choices</strong>:</p>
       <ul>
@@ -763,7 +763,7 @@
     <div class="modal-title">Feedback</div>
     <div class="modal-close" id="feedbackClose">&#10005;</div>
     <div class="feedback-content">
-      <p class="fb-intro">Help us make Spirle better! All feedback is anonymous.</p>
+      <p class="fb-intro">Help us make Loople better! All feedback is anonymous.</p>
 
       <label class="fb-label">How was the overall experience?</label>
       <div class="fb-stars" id="fbStars">
@@ -1138,7 +1138,7 @@ function startTarget() {
 // ==============================================
 // Icon Renderers
 // ==============================================
-const lightOverrideStored = localStorage.getItem('spirle-light');
+const lightOverrideStored = localStorage.getItem('loople-light');
 const isLight = lightOverrideStored === 'true' || (lightOverrideStored === null && window.matchMedia('(prefers-color-scheme: light)').matches);
 if (lightOverrideStored === 'true') document.documentElement.setAttribute('data-theme', 'light');
 
@@ -1531,7 +1531,7 @@ function shareResult() {
   var emojis = { intune: '\u{1F7E2}', close: '\u{1F7E1}', off: '\u26AB' };
   var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
   var score = won ? feedback.length + '/6' : 'X/6';
-  var text = 'Spirle #' + currentPuzzle.dayNum + ' \u{1F3B5} ' + score + '\n\n';
+  var text = 'Loople #' + currentPuzzle.dayNum + ' \u{1F3B5} ' + score + '\n\n';
   for (var i = 0; i < feedback.length; i++) {
     text += feedback[i].map(function(f) { return emojis[f]; }).join('') + '\n';
   }
@@ -1577,7 +1577,7 @@ function defaultStats() {
 
 function loadStats() {
   try {
-    return JSON.parse(localStorage.getItem('spirle-stats')) || defaultStats();
+    return JSON.parse(localStorage.getItem('loople-stats')) || defaultStats();
   } catch(e) { return defaultStats(); }
 }
 
@@ -1592,7 +1592,7 @@ function saveStats(won) {
   } else {
     stats.streak = 0;
   }
-  localStorage.setItem('spirle-stats', JSON.stringify(stats));
+  localStorage.setItem('loople-stats', JSON.stringify(stats));
 }
 
 function renderStats() {
@@ -1637,7 +1637,7 @@ function renderStats() {
 // ==============================================
 // Settings
 // ==============================================
-let hardMode = localStorage.getItem('spirle-hardmode') === 'true';
+let hardMode = localStorage.getItem('loople-hardmode') === 'true';
 
 function applyTheme(light) {
   if (light) {
@@ -1654,20 +1654,20 @@ function buildSettingsContent() {
   toggleHard.addEventListener('click', function() {
     if (guesses.length > 0 && !gameOver) return;
     hardMode = !hardMode;
-    localStorage.setItem('spirle-hardmode', hardMode.toString());
+    localStorage.setItem('loople-hardmode', hardMode.toString());
     toggleHard.classList.toggle('on', hardMode);
   });
 
   // Light mode toggle
   var toggleLight = document.getElementById('toggleLight');
-  var lightOverride = localStorage.getItem('spirle-light');
+  var lightOverride = localStorage.getItem('loople-light');
   if (lightOverride === 'true') {
     toggleLight.classList.add('on');
     applyTheme(true);
   }
   toggleLight.addEventListener('click', function() {
     var isOn = toggleLight.classList.toggle('on');
-    localStorage.setItem('spirle-light', isOn.toString());
+    localStorage.setItem('loople-light', isOn.toString());
     applyTheme(isOn);
   });
 }
@@ -1700,7 +1700,7 @@ function wireModals() {
 // Game State Persistence
 // ==============================================
 function saveGameState() {
-  localStorage.setItem('spirle-state', JSON.stringify({
+  localStorage.setItem('loople-state', JSON.stringify({
     dateStr: currentPuzzle.dateStr,
     guesses: guesses,
     feedback: feedback,
@@ -1710,7 +1710,7 @@ function saveGameState() {
 
 function loadGameState() {
   try {
-    var state = JSON.parse(localStorage.getItem('spirle-state'));
+    var state = JSON.parse(localStorage.getItem('loople-state'));
     if (!state || state.dateStr !== currentPuzzle.dateStr) return null;
     return state;
   } catch(e) { return null; }
@@ -1859,9 +1859,9 @@ function wireFeedback() {
 
     // Store locally as backup
     var allFeedback = [];
-    try { allFeedback = JSON.parse(localStorage.getItem('spirle-feedback') || '[]'); } catch(e) {}
+    try { allFeedback = JSON.parse(localStorage.getItem('loople-feedback') || '[]'); } catch(e) {}
     allFeedback.push(fbData);
-    localStorage.setItem('spirle-feedback', JSON.stringify(allFeedback));
+    localStorage.setItem('loople-feedback', JSON.stringify(allFeedback));
 
     // Send to webhook if configured
     var submitBtn = document.getElementById('fbSubmit');
@@ -1908,7 +1908,7 @@ function wireTestBar() {
     window.location.search = '?day=' + (currentDay + 1);
   });
   document.getElementById('testReset').addEventListener('click', function() {
-    localStorage.removeItem('spirle-state');
+    localStorage.removeItem('loople-state');
     window.location.reload();
   });
 }
@@ -1929,20 +1929,20 @@ buildSettingsContent();
 wireModals();
 wireFeedback();
 wireTestBar();
-soundEnabled = localStorage.getItem('spirle-sound') !== 'false';
+soundEnabled = localStorage.getItem('loople-sound') !== 'false';
 var soundBtn = document.getElementById('btnSound');
 if (soundEnabled) soundBtn.classList.add('active');
 soundBtn.addEventListener('click', function() {
   soundEnabled = !soundEnabled;
   soundBtn.classList.toggle('active', soundEnabled);
-  localStorage.setItem('spirle-sound', String(soundEnabled));
+  localStorage.setItem('loople-sound', String(soundEnabled));
   if (soundEnabled) getAudioCtx(); // init on first enable
 });
 restoreGameState();
 // Show instructions on first visit
-if (!localStorage.getItem('spirle-seen-help')) {
+if (!localStorage.getItem('loople-seen-help')) {
   document.getElementById('helpModal').classList.add('open');
-  localStorage.setItem('spirle-seen-help', 'true');
+  localStorage.setItem('loople-seen-help', 'true');
 }
 </script>
 </body>

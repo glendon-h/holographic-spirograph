@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:\\\\Users\\\\GlendonHass\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.0.6\\\\scripts\\\\start-server.sh --project-dir \"C:\\\\Users\\\\GlendonHass\\\\workspace\\\\claude\\\\holographic-spirograph\")",
+      "Bash(bash \"/c/Users/GlendonHass/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/scripts/start-server.sh\" --project-dir \"/c/Users/GlendonHass/workspace/claude/holographic-spirograph\")",
+      "Bash(bash \"C:/Users/GlendonHass/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/GlendonHass/workspace/claude/holographic-spirograph\")",
+      "Skill(commit-commands:commit)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

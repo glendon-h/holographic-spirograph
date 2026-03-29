@@ -19,9 +19,9 @@
 
     #cell-sim { flex: 1; }
     #cell-result-wrap { flex: 1; }
-    #cell-shapes { width: 130px; display: flex; flex-direction: column; }
-    #cell-shapes .shape-thumb { flex: 1; position: relative; border-bottom: 1px solid #1a1a1a; }
-    #cell-shapes .shape-thumb canvas { width: 100%; height: 100%; }
+    #cell-shapes { width: 130px; display: flex; flex-direction: column; overflow: hidden; }
+    #cell-shapes .shape-thumb { height: 50%; position: relative; border-bottom: 1px solid #1a1a1a; overflow: hidden; }
+    #cell-shapes .shape-thumb canvas { width: 100%; height: 100%; display: block; }
     #cell-shapes .shape-thumb .viz-label { font-size: 10px; }
 
     #cell-math { flex: 1; padding: 14px; overflow-y: auto; background: #0d0d0d; border-top: 1px solid #1a1a1a; }
