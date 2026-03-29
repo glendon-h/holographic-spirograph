@@ -11,7 +11,7 @@
 
   html, body {
     height: 100%;
-    overflow: hidden;
+    overflow: auto;
     background: #0c0c14;
     color: #c8c8d8;
     font-family: 'Space Grotesk', -apple-system, sans-serif;
@@ -21,7 +21,7 @@
      Game container
   ===================== */
   .game {
-    height: 100%;
+    min-height: 100%;
     max-width: 400px;
     margin: 0 auto;
     padding: 10px 14px;
@@ -166,13 +166,12 @@
   ===================== */
   .pickers-area {
     width: 100%;
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 4px;
     min-height: 0;
-    overflow: hidden;
   }
   .picker-row {
     display: grid;
@@ -199,8 +198,9 @@
     gap: 4px;
   }
   .picker-option {
-    aspect-ratio: auto;
+    aspect-ratio: 1;
     border-radius: 6px;
+    min-width: 0;
     border: 1px solid #2a2a3a;
     background: #1a1a26;
     display: flex;
