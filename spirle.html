@@ -706,11 +706,181 @@ function getPuzzleAnswer(puzzle) {
 }
 
 // ==============================================
+// Target Spirograph Rendering
+// ==============================================
+
+function computeTargetPoints(answer, puzzle, laps) {
+  const sA = makeShape(answer.outer);
+  const sB = makeShape(answer.inner);
+  const atA = arcTable(sA, 2000);
+  const atB = arcTable(sB, 2000);
+
+  // Compute maxR from outer shape
+  let maxR = 0;
+  for (let i = 0; i < 500; i++) {
+    const t = (i / 500) * Math.PI * 2;
+    const p = sA.getPoint(t);
+    const r = Math.sqrt(p.x * p.x + p.y * p.y);
+    if (r > maxR) maxR = r;
+  }
+
+  const points = [];
+  const step = 0.04;
+  const totalDist = atA.totalLen * laps;
+
+  for (let dist = 0; dist <= totalDist; dist += step) {
+    const thetaA = arc2theta(atA.table, dist % atA.totalLen);
+    const pA = sA.getPoint(thetaA);
+
+    // Tangent via numerical derivative
+    const dt = 0.001;
+    const pA2 = sA.getPoint(thetaA + dt);
+    let tx = pA2.x - pA.x, ty = pA2.y - pA.y;
+    const tl = Math.sqrt(tx * tx + ty * ty);
+    if (tl > 0) { tx /= tl; ty /= tl; }
+    // Inward normal
+    let nx = ty, ny = -tx;
+    if (nx * pA.x + ny * pA.y > 0) { nx = -nx; ny = -ny; }
+
+    const bPer = atB.totalLen * answer.ratio;
+    const thetaB = arc2theta(atB.table, (dist % bPer) / answer.ratio);
+    const rB = sB.getPolarRadius(thetaB) * answer.ratio;
+    const rA = Math.sqrt(pA.x * pA.x + pA.y * pA.y);
+    const clampedRB = Math.min(rB, rA * 0.9);
+
+    const cbx = pA.x + nx * clampedRB;
+    const cby = pA.y + ny * clampedRB;
+
+    const rot = thetaA - thetaB;
+    const penDist = answer.pen * answer.ratio;
+    const penX = cbx + penDist * Math.cos(rot);
+    const penY = cby + penDist * Math.sin(rot);
+
+    // Apply puzzle rotation
+    const rx = penX * Math.cos(puzzle.rotation) - penY * Math.sin(puzzle.rotation);
+    const ry = penX * Math.sin(puzzle.rotation) + penY * Math.cos(puzzle.rotation);
+
+    points.push({ x: rx, y: ry, maxR });
+  }
+
+  return points;
+}
+
+// State
+let targetCanvas, targetCtx, targetPoints = [], targetMaxLaps = 2, drawIdx = 0, drawAnimId = null;
+
+function initTargetCanvas() {
+  targetCanvas = document.getElementById('target');
+  targetCtx = targetCanvas.getContext('2d');
+  const rect = targetCanvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  targetCanvas.width = rect.width * dpr;
+  targetCanvas.height = rect.height * dpr;
+  targetCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawTarget() {
+  drawAnimId = null;
+  if (!targetPoints.length) return;
+
+  const maxR = targetPoints[0].maxR;
+  const rect = targetCanvas.parentElement.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  const canvasW = rect.width;
+
+  const batchSize = 3;
+  const end = Math.min(drawIdx + batchSize, targetPoints.length);
+
+  for (let i = drawIdx; i < end; i++) {
+    if (i === 0) { drawIdx = i + 1; continue; }
+    const prev = targetPoints[i - 1];
+    const curr = targetPoints[i];
+
+    const px = cx + prev.x * scale;
+    const py = cy + prev.y * scale;
+    const qx = cx + curr.x * scale;
+    const qy = cy + curr.y * scale;
+
+    // Skip jumps > 30% of canvas width
+    const jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+    if (jump > canvasW * 0.3) { drawIdx = i + 1; continue; }
+
+    const progress = i / targetPoints.length;
+    const hue = 265 + progress * 60;
+    const lightness = 58 + 12 * Math.sin(i * 0.01);
+    targetCtx.strokeStyle = `hsla(${hue}, 65%, ${lightness}%, 0.8)`;
+    targetCtx.lineWidth = 1.5;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+
+    drawIdx = i + 1;
+  }
+
+  if (drawIdx < targetPoints.length) {
+    drawAnimId = requestAnimationFrame(drawTarget);
+  }
+}
+
+function redrawTargetInstant() {
+  initTargetCanvas();
+  const maxR = targetPoints.length ? targetPoints[0].maxR : 1;
+  const rect = targetCanvas.parentElement.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  const canvasW = rect.width;
+
+  for (let i = 1; i < drawIdx && i < targetPoints.length; i++) {
+    const prev = targetPoints[i - 1];
+    const curr = targetPoints[i];
+    const px = cx + prev.x * scale;
+    const py = cy + prev.y * scale;
+    const qx = cx + curr.x * scale;
+    const qy = cy + curr.y * scale;
+    const jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+    if (jump > canvasW * 0.3) continue;
+    const progress = i / targetPoints.length;
+    const hue = 265 + progress * 60;
+    const lightness = 58 + 12 * Math.sin(i * 0.01);
+    targetCtx.strokeStyle = `hsla(${hue}, 65%, ${lightness}%, 0.8)`;
+    targetCtx.lineWidth = 1.5;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+  }
+}
+
+function revealMoreLaps(newLapCount) {
+  if (drawAnimId) { cancelAnimationFrame(drawAnimId); drawAnimId = null; }
+  const oldCount = targetPoints.length;
+  targetMaxLaps = newLapCount;
+  targetPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  drawIdx = Math.min(oldCount, targetPoints.length);
+  drawTarget();
+}
+
+function startTarget() {
+  initTargetCanvas();
+  targetPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  drawIdx = 0;
+  drawTarget();
+}
+
+// ==============================================
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
 const currentAnswer = getPuzzleAnswer(currentPuzzle);
 document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum;
+startTarget();
+window.addEventListener('resize', redrawTargetInstant);
 </script>
 </body>
 </html>
