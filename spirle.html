@@ -977,6 +977,147 @@ function drawIcon(canvas, paramType, valueIdx, color, size) {
 }
 
 // ==============================================
+// Game State
+// ==============================================
+const PARAM_TYPES  = ['outer', 'inner', 'size', 'reach'];
+const PARAM_LABELS = ['Outer Shape', 'Inner Shape', 'Size', 'Reach'];
+const MAX_GUESSES  = 6;
+
+let guesses          = [];
+let feedback         = [];
+let currentSelection = { outer: null, inner: null, size: null, reach: null };
+let gameOver         = false;
+
+// ==============================================
+// Guess Grid Builder
+// ==============================================
+function buildGuessRows() {
+  const grid = document.getElementById('guessGrid');
+  for (let row = 0; row < MAX_GUESSES; row++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'guess-row';
+    rowEl.id = 'row-' + row;
+    for (let col = 0; col < 4; col++) {
+      const cell = document.createElement('div');
+      cell.className = 'guess-cell cell-empty';
+      cell.id = 'cell-' + row + '-' + col;
+      rowEl.appendChild(cell);
+    }
+    grid.appendChild(rowEl);
+  }
+}
+
+// ==============================================
+// Pickers Builder
+// ==============================================
+function buildPickers() {
+  const area = document.getElementById('pickersArea');
+
+  for (let rowIdx = 0; rowIdx < 2; rowIdx++) {
+    const pickerRow = document.createElement('div');
+    pickerRow.className = 'picker-row';
+
+    for (let colIdx = 0; colIdx < 2; colIdx++) {
+      const paramIdx  = rowIdx * 2 + colIdx;
+      const paramType = PARAM_TYPES[paramIdx];
+      const label     = PARAM_LABELS[paramIdx];
+
+      const group = document.createElement('div');
+      group.className = 'picker-group';
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'picker-label';
+      labelEl.textContent = label;
+      group.appendChild(labelEl);
+
+      const optionsEl = document.createElement('div');
+      optionsEl.className = 'picker-options';
+      optionsEl.id = 'picker-' + paramType;
+
+      for (let valueIdx = 0; valueIdx < 4; valueIdx++) {
+        const optEl = document.createElement('div');
+        optEl.className = 'picker-option';
+        optEl.dataset.param = paramType;
+        optEl.dataset.idx   = valueIdx;
+
+        const cv = document.createElement('canvas');
+        drawIcon(cv, paramType, valueIdx, FEEDBACK_COLORS.neutral, 28);
+        optEl.appendChild(cv);
+
+        optEl.addEventListener('click', () => onPickerTap(paramType, valueIdx, optEl));
+        optionsEl.appendChild(optEl);
+      }
+
+      group.appendChild(optionsEl);
+      pickerRow.appendChild(group);
+    }
+
+    area.appendChild(pickerRow);
+  }
+}
+
+// ==============================================
+// Picker Interaction
+// ==============================================
+function onPickerTap(paramType, valueIdx, optEl) {
+  if (gameOver) return;
+
+  const pickerGroup = document.getElementById('picker-' + paramType);
+  pickerGroup.querySelectorAll('.picker-option').forEach(el => {
+    if (!el.classList.contains('confirmed') && !el.classList.contains('eliminated')) {
+      el.classList.remove('selected');
+    }
+  });
+
+  optEl.classList.add('selected');
+  currentSelection[paramType] = valueIdx;
+
+  updateCurrentRowPreview();
+  checkRollReady();
+}
+
+function clearCellChildren(cell) {
+  while (cell.firstChild) {
+    cell.removeChild(cell.firstChild);
+  }
+}
+
+function updateCurrentRowPreview() {
+  const rowIdx = guesses.length;
+  if (rowIdx >= MAX_GUESSES) return;
+
+  PARAM_TYPES.forEach((paramType, col) => {
+    const cell = document.getElementById('cell-' + rowIdx + '-' + col);
+    const selIdx = currentSelection[paramType];
+
+    if (selIdx !== null) {
+      cell.className = 'guess-cell cell-pending';
+      clearCellChildren(cell);
+      const cv = document.createElement('canvas');
+      drawIcon(cv, paramType, selIdx, 'rgba(122, 106, 238, 0.7)', 26);
+      cell.appendChild(cv);
+    } else {
+      cell.className = 'guess-cell cell-empty';
+      clearCellChildren(cell);
+    }
+  });
+}
+
+function checkRollReady() {
+  const allSelected = PARAM_TYPES.every(p => currentSelection[p] !== null);
+  const rollBtn = document.getElementById('rollBtn');
+  if (allSelected) {
+    rollBtn.removeAttribute('disabled');
+  } else {
+    rollBtn.setAttribute('disabled', '');
+  }
+}
+
+function updateGuessCount() {
+  document.getElementById('guessCount').textContent = (guesses.length + 1) + ' of 6';
+}
+
+// ==============================================
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
@@ -984,6 +1125,9 @@ const currentAnswer = getPuzzleAnswer(currentPuzzle);
 document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum;
 startTarget();
 window.addEventListener('resize', redrawTargetInstant);
+buildGuessRows();
+buildPickers();
+updateGuessCount();
 </script>
 </body>
 </html>
