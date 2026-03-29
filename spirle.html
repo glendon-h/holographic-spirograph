@@ -1817,6 +1817,9 @@ function playWinSound() {
 // ==============================================
 // Feedback Form
 // ==============================================
+// *** BETA CONFIG — paste your webhook.site URL here ***
+var FEEDBACK_WEBHOOK = '';
+
 var fbData = { stars: 0, easy: '', icons: '', difficulty: '', returnPlay: '', text: '' };
 
 function wireFeedback() {
@@ -1852,23 +1855,23 @@ function wireFeedback() {
     fbData.text = document.getElementById('fbText').value;
     fbData.puzzle = currentPuzzle.dayNum;
     fbData.timestamp = new Date().toISOString();
+    fbData.userAgent = navigator.userAgent;
 
-    // Store locally
+    // Store locally as backup
     var allFeedback = [];
     try { allFeedback = JSON.parse(localStorage.getItem('spirle-feedback') || '[]'); } catch(e) {}
     allFeedback.push(fbData);
     localStorage.setItem('spirle-feedback', JSON.stringify(allFeedback));
 
-    // Copy to clipboard for easy sharing
-    var summary = 'Spirle Feedback (Puzzle #' + fbData.puzzle + ')\n' +
-      'Rating: ' + (fbData.stars || '-') + '/5\n' +
-      'Easy to understand: ' + (fbData.easy || '-') + '\n' +
-      'Icons: ' + (fbData.icons || '-') + '\n' +
-      'Difficulty: ' + (fbData.difficulty || '-') + '\n' +
-      'Play again: ' + (fbData.returnPlay || '-') + '\n' +
-      'Comments: ' + (fbData.text || '-');
-
-    navigator.clipboard.writeText(summary).catch(function() {});
+    // Send to webhook if configured
+    if (FEEDBACK_WEBHOOK) {
+      fetch(FEEDBACK_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fbData),
+        mode: 'no-cors'
+      }).catch(function() {});
+    }
 
     document.getElementById('fbSubmit').style.display = 'none';
     document.getElementById('fbThanks').style.display = 'block';
