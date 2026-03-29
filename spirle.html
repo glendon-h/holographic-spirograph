@@ -9,11 +9,103 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  :root {
+    --bg: #0c0c14;
+    --bg2: #14141e;
+    --bg3: #1a1a26;
+    --text: #c8c8d8;
+    --text2: #e8e0f0;
+    --muted: #6a6a8a;
+    --muted2: #5a5a7a;
+    --muted3: #4a4a6a;
+    --border: #2a2a3a;
+    --border2: #1e1e2e;
+    --border3: #1e1e30;
+    --target-bg1: #141420;
+    --target-bg2: #0c0c14;
+    --cell-intune-bg: #1a3a2a;
+    --cell-intune-border: #2a6a4a;
+    --cell-close-bg: #2e2a1a;
+    --cell-close-border: #6a5a2a;
+    --cell-off-bg: #1a1a22;
+    --cell-off-border: #22222e;
+    --cell-empty-bg: #12121a;
+    --cell-empty-border: #1a1a26;
+    --cell-pending-bg: #161620;
+    --cell-pending-border: #2a2a40;
+    --picker-selected: #7a6aee;
+    --picker-selected-bg: #1e1a30;
+    --picker-confirmed: #2a6a4a;
+    --picker-confirmed-bg: #1a2a22;
+    --roll-border: #4a3a8a;
+    --roll-bg1: #2a1e4e;
+    --roll-bg2: #1e1a3a;
+    --roll-text: #b8a8ee;
+    --modal-bg: #16161e;
+    --modal-overlay: rgba(0,0,0,0.7);
+    --divider: #2a2a3a;
+    --toggle-bg: #2a2a3a;
+    --toggle-border: #3a3a4a;
+    --toggle-dot: #6a6a8a;
+    --toggle-on-bg: #2a4e3a;
+    --toggle-on-border: #3a8a5a;
+    --toggle-on-dot: #6aee9a;
+    --active-btn: #b8a8ee;
+    --active-btn-border: #4a3a8a;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f5f8;
+      --bg2: #ececf0;
+      --bg3: #e2e2ea;
+      --text: #333340;
+      --text2: #1a1a2e;
+      --muted: #8888aa;
+      --muted2: #9999b0;
+      --muted3: #aaaacc;
+      --border: #d0d0dd;
+      --border2: #d8d8e2;
+      --border3: #c8c8d8;
+      --target-bg1: #eeeef4;
+      --target-bg2: #f5f5f8;
+      --cell-intune-bg: #d4f5e0;
+      --cell-intune-border: #5ac880;
+      --cell-close-bg: #f5ecd0;
+      --cell-close-border: #c8a840;
+      --cell-off-bg: #e8e8ee;
+      --cell-off-border: #ccccdd;
+      --cell-empty-bg: #ededf2;
+      --cell-empty-border: #d8d8e2;
+      --cell-pending-bg: #e8e8f0;
+      --cell-pending-border: #b0b0cc;
+      --picker-selected: #6a5ad8;
+      --picker-selected-bg: #eae6f8;
+      --picker-confirmed: #3a9a5a;
+      --picker-confirmed-bg: #e0f5ea;
+      --roll-border: #8878cc;
+      --roll-bg1: #ece8f8;
+      --roll-bg2: #e0daf0;
+      --roll-text: #5a4ab0;
+      --modal-bg: #fafafc;
+      --modal-overlay: rgba(0,0,0,0.3);
+      --divider: #d0d0dd;
+      --toggle-bg: #d0d0dd;
+      --toggle-border: #b8b8cc;
+      --toggle-dot: #9999b0;
+      --toggle-on-bg: #b0e8c8;
+      --toggle-on-border: #5ac880;
+      --toggle-on-dot: #2a8a4a;
+      --active-btn: #5a4ab0;
+      --active-btn-border: #8878cc;
+    }
+  }
+
   html, body {
     height: 100%;
     overflow: auto;
-    background: #0c0c14;
-    color: #c8c8d8;
+    background: var(--bg);
+    color: var(--text);
     font-family: 'Space Grotesk', -apple-system, sans-serif;
   }
 
@@ -49,12 +141,12 @@
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 3px;
-    color: #e8e0f0;
+    color: var(--text2);
     text-transform: uppercase;
   }
   .puzzle-num {
     font-size: 11px;
-    color: #6a6a8a;
+    color: var(--muted);
     font-weight: 400;
     margin-left: 6px;
   }
@@ -67,9 +159,9 @@
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    border: 1px solid #2a2a3a;
-    background: #14141e;
-    color: #6a6a8a;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -77,8 +169,8 @@
     font-size: 12px;
   }
   .icon-btn.active {
-    color: #b8a8ee;
-    border-color: #4a3a8a;
+    color: var(--active-btn);
+    border-color: var(--active-btn-border);
   }
 
   /* =====================
@@ -90,8 +182,8 @@
     flex-shrink: 1;
     position: relative;
     border-radius: 50%;
-    background: radial-gradient(circle, #141420 0%, #0c0c14 70%);
-    border: 1px solid #1e1e30;
+    background: radial-gradient(circle, var(--target-bg1) 0%, var(--target-bg2) 70%);
+    border: 1px solid var(--border3);
     margin: 6px 0;
   }
   .target-wrap canvas {
@@ -121,7 +213,7 @@
   .grid-header span {
     text-align: center;
     font-size: 8px;
-    color: #4a4a6a;
+    color: var(--muted3);
     text-transform: uppercase;
     letter-spacing: 1px;
   }
@@ -144,11 +236,11 @@
   }
 
   /* Cell state classes */
-  .cell-intune  { background: #1a3a2a; border: 1px solid #2a6a4a; }
-  .cell-close   { background: #2e2a1a; border: 1px solid #6a5a2a; }
-  .cell-off     { background: #1a1a22; border: 1px solid #22222e; }
-  .cell-empty   { background: #12121a; border: 1px solid #1a1a26; }
-  .cell-pending { background: #161620; border: 1px solid #2a2a40; }
+  .cell-intune  { background: var(--cell-intune-bg); border: 1px solid var(--cell-intune-border); }
+  .cell-close   { background: var(--cell-close-bg); border: 1px solid var(--cell-close-border); }
+  .cell-off     { background: var(--cell-off-bg); border: 1px solid var(--cell-off-border); }
+  .cell-empty   { background: var(--cell-empty-bg); border: 1px solid var(--cell-empty-border); }
+  .cell-pending { background: var(--cell-pending-bg); border: 1px solid var(--cell-pending-border); }
 
   /* =====================
      Divider
@@ -156,7 +248,7 @@
   .divider {
     width: 50%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #2a2a3a, transparent);
+    background: linear-gradient(90deg, transparent, var(--divider), transparent);
     flex-shrink: 0;
     margin: 4px 0;
   }
@@ -179,14 +271,14 @@
     gap: 6px;
   }
   .picker-group {
-    background: #14141e;
-    border: 1px solid #1e1e2e;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
     border-radius: 10px;
     padding: 4px 6px;
   }
   .picker-label {
     font-size: 8px;
-    color: #5a5a7a;
+    color: var(--muted2);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     margin-bottom: 5px;
@@ -201,8 +293,8 @@
     aspect-ratio: 1;
     border-radius: 6px;
     min-width: 0;
-    border: 1px solid #2a2a3a;
-    background: #1a1a26;
+    border: 1px solid var(--border);
+    background: var(--bg3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -214,12 +306,11 @@
     height: 28px;
   }
   .picker-option:hover {
-    border-color: #4a4a6a;
-    background: #1e1e2e;
+    border-color: var(--muted3);
   }
   .picker-option.selected {
-    border-color: #7a6aee;
-    background: #1e1a30;
+    border-color: var(--picker-selected);
+    background: var(--picker-selected-bg);
     box-shadow: 0 0 10px rgba(122, 106, 238, 0.15);
   }
   .picker-option.eliminated {
@@ -227,8 +318,8 @@
     pointer-events: none;
   }
   .picker-option.confirmed {
-    border-color: #2a6a4a;
-    background: #1a2a22;
+    border-color: var(--picker-confirmed);
+    background: var(--picker-confirmed-bg);
     pointer-events: none;
   }
 
@@ -240,9 +331,9 @@
     max-width: 240px;
     height: 40px;
     border-radius: 20px;
-    border: 1px solid #4a3a8a;
-    background: linear-gradient(135deg, #2a1e4e, #1e1a3a);
-    color: #b8a8ee;
+    border: 1px solid var(--roll-border);
+    background: linear-gradient(135deg, var(--roll-bg1), var(--roll-bg2));
+    color: var(--roll-text);
     font-family: 'Space Grotesk', sans-serif;
     font-size: 14px;
     font-weight: 600;
@@ -253,9 +344,9 @@
     margin: 2px 0 4px;
   }
   .roll-btn:hover:not(:disabled) {
-    border-color: #7a6aee;
+    border-color: var(--picker-selected);
     box-shadow: 0 0 20px rgba(122, 106, 238, 0.2);
-    color: #d8c8ff;
+    color: var(--text2);
   }
   .roll-btn:disabled {
     opacity: 0.3;
@@ -267,7 +358,7 @@
   ===================== */
   .guess-count {
     font-size: 10px;
-    color: #3a3a5a;
+    color: var(--muted3);
     letter-spacing: 1px;
     flex-shrink: 0;
   }
@@ -278,7 +369,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(12, 12, 20, 0.85);
+    background: var(--modal-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -290,8 +381,8 @@
     display: flex;
   }
   .modal {
-    background: #14141e;
-    border: 1px solid #2a2a3a;
+    background: var(--modal-bg);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 24px 20px 20px;
     width: 320px;
@@ -303,7 +394,7 @@
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #e8e0f0;
+    color: var(--text2);
     text-align: center;
     margin-bottom: 16px;
   }
@@ -314,9 +405,9 @@
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    border: 1px solid #2a2a3a;
-    background: #1a1a26;
-    color: #6a6a8a;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -339,11 +430,11 @@
   .stat-value {
     font-size: 24px;
     font-weight: 700;
-    color: #e8e0f0;
+    color: var(--text2);
   }
   .stat-label {
     font-size: 9px;
-    color: #5a5a7a;
+    color: var(--muted2);
     text-transform: uppercase;
     letter-spacing: 1px;
   }
@@ -357,7 +448,7 @@
     align-items: center;
     gap: 6px;
     font-size: 10px;
-    color: #6a6a8a;
+    color: var(--muted);
   }
   .stats-bar-row .bar-label {
     width: 10px;
@@ -367,18 +458,18 @@
   .stats-bar {
     flex: 1;
     height: 14px;
-    background: #1a1a26;
+    background: var(--bg3);
     border-radius: 3px;
     overflow: hidden;
   }
   .stats-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #2a1e4e, #4a3a8a);
+    background: linear-gradient(90deg, var(--roll-bg1), var(--roll-border));
     border-radius: 3px;
     min-width: 4px;
   }
   .stats-bar-fill.current {
-    background: linear-gradient(90deg, #2a4e3a, #3a8a5a);
+    background: linear-gradient(90deg, var(--toggle-on-bg), var(--toggle-on-border));
   }
 
   /* Settings modal content */
@@ -387,33 +478,33 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #1e1e2e;
+    border-bottom: 1px solid var(--border2);
   }
   .setting-row:last-child {
     border-bottom: none;
   }
   .setting-label {
     font-size: 12px;
-    color: #c8c8d8;
+    color: var(--text);
   }
   .setting-desc {
     font-size: 9px;
-    color: #5a5a7a;
+    color: var(--muted2);
     margin-top: 2px;
   }
   .toggle {
     width: 36px;
     height: 20px;
     border-radius: 10px;
-    background: #2a2a3a;
-    border: 1px solid #3a3a4a;
+    background: var(--toggle-bg);
+    border: 1px solid var(--toggle-border);
     position: relative;
     cursor: pointer;
     flex-shrink: 0;
   }
   .toggle.on {
-    background: #2a4e3a;
-    border-color: #3a8a5a;
+    background: var(--toggle-on-bg);
+    border-color: var(--toggle-on-border);
   }
   .toggle::after {
     content: '';
@@ -423,12 +514,12 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #6a6a8a;
+    background: var(--toggle-dot);
     transition: transform 0.15s ease;
   }
   .toggle.on::after {
     transform: translateX(16px);
-    background: #6aee9a;
+    background: var(--toggle-on-dot);
   }
 </style>
 </head>
@@ -549,8 +640,8 @@
 
     <div class="setting-row">
       <div>
-        <div class="setting-label">Hard Mode</div>
-        <div class="setting-desc">Confirmed picks must stay in all future guesses</div>
+        <div class="setting-label">See Less</div>
+        <div class="setting-desc">The spirograph won't reveal more as you guess</div>
       </div>
       <div class="toggle" id="toggleHard"></div>
     </div>
@@ -816,7 +907,7 @@ function drawTarget() {
 
     const progress = i / targetPoints.length;
     const hue = 265 + progress * 60;
-    const lightness = 58 + 12 * Math.sin(i * 0.01);
+    const lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
     targetCtx.strokeStyle = `hsla(${hue}, 65%, ${lightness}%, 0.8)`;
     targetCtx.lineWidth = 1.5;
     targetCtx.lineCap = 'round';
@@ -853,7 +944,7 @@ function redrawTargetInstant() {
     if (jump > canvasW * 0.3) continue;
     const progress = i / targetPoints.length;
     const hue = 265 + progress * 60;
-    const lightness = 58 + 12 * Math.sin(i * 0.01);
+    const lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
     targetCtx.strokeStyle = `hsla(${hue}, 65%, ${lightness}%, 0.8)`;
     targetCtx.lineWidth = 1.5;
     targetCtx.lineCap = 'round';
@@ -883,13 +974,17 @@ function startTarget() {
 // ==============================================
 // Icon Renderers
 // ==============================================
+const isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+
 const FEEDBACK_COLORS = {
-  intune:    'rgba(106, 234, 154, 0.75)',
-  close:     'rgba(232, 200, 90, 0.75)',
-  off:       'rgba(90, 90, 110, 0.4)',
-  neutral:   'rgba(168, 152, 255, 0.7)',
-  confirmed: 'rgba(106, 234, 154, 0.7)',
+  intune:    isLight ? 'rgba(40, 160, 80, 0.8)' : 'rgba(106, 234, 154, 0.75)',
+  close:     isLight ? 'rgba(180, 150, 30, 0.8)' : 'rgba(232, 200, 90, 0.75)',
+  off:       isLight ? 'rgba(140, 140, 160, 0.5)' : 'rgba(90, 90, 110, 0.4)',
+  neutral:   isLight ? 'rgba(100, 80, 200, 0.8)' : 'rgba(168, 152, 255, 0.7)',
+  confirmed: isLight ? 'rgba(40, 160, 80, 0.75)' : 'rgba(106, 234, 154, 0.7)',
 };
+
+const TRACE_LIGHTNESS = isLight ? 38 : 58;
 
 function initCanvas(canvas, size) {
   const dpr = window.devicePixelRatio || 1;
@@ -932,48 +1027,42 @@ function drawShapeIcon(canvas, shapeName, color, size) {
 
 function drawSizeIcon(canvas, level, color, size) {
   const ctx = initCanvas(canvas, size);
-  const radii = [0.18, 0.3, 0.42, 0.56];
-  const r = radii[level] * (size / 2);
-  const cx = size / 2;
-  const cy = size / 2;
-  // Fill with color at 0.12 opacity
-  const fillColor = color.replace(/[\d.]+\)$/, '0.12)');
-  ctx.fillStyle = fillColor;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  const barCount = level + 1; // 1-4 bars
+  const barW = 4;
+  const gap = 2;
+  const totalW = 4 * barW + 3 * gap;
+  const startX = (size - totalW) / 2;
+  const baseY = size * 0.78;
+  const maxH = size * 0.55;
+  const dim = color.replace(/[\d.]+\)$/, '0.15)');
+
+  for (let i = 0; i < 4; i++) {
+    const h = maxH * ((i + 1) / 4);
+    const x = startX + i * (barW + gap);
+    const y = baseY - h;
+    ctx.fillStyle = i < barCount ? color : dim;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, h, 1.5);
+    ctx.fill();
+  }
 }
 
 function drawReachIcon(canvas, level, color, size) {
   const ctx = initCanvas(canvas, size);
-  const distances = [0.12, 0.22, 0.32, 0.42];
-  const dist = distances[level] * size;
-  const cx = size / 2;
-  const cy = size / 2;
-  const angle = -Math.PI / 4; // 45 degrees up-right for visual clarity
-  const dotX = cx + Math.cos(angle) * dist;
-  const dotY = cy + Math.sin(angle) * dist;
-  // Center dot at 0.25 opacity
-  const dimColor = color.replace(/[\d.]+\)$/, '0.25)');
-  ctx.fillStyle = dimColor;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 1.2, 0, Math.PI * 2);
-  ctx.fill();
-  // Arm line at 0.25 opacity
-  ctx.strokeStyle = dimColor;
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(dotX, dotY);
-  ctx.stroke();
-  // Pen dot at full color
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
-  ctx.fill();
+  const arcCount = level + 1; // 1-4 arcs
+  const cx = 1;
+  const cy = size - 1;
+  const maxR = size * 0.85;
+  const dim = color.replace(/[\d.]+\)$/, '0.12)');
+
+  for (let i = 0; i < 4; i++) {
+    const r = maxR * ((i + 1) / 4);
+    ctx.strokeStyle = i < arcCount ? color : dim;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, 0);
+    ctx.stroke();
+  }
 }
 
 function drawIcon(canvas, paramType, valueIdx, color, size) {
