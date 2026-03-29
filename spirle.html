@@ -490,6 +490,15 @@
   }
   /* Help content */
   .help-content p { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  .beta-note {
+    background: var(--picker-selected-bg);
+    border: 1px solid var(--picker-selected);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
   .help-content ul { font-size: 13px; color: var(--text); line-height: 1.6; margin: 0 0 10px 18px; }
   .help-content strong { color: var(--text2); }
   .help-feedback { margin: 14px 0; }
@@ -498,6 +507,63 @@
   .help-dot.intune { background: var(--cell-intune-bg); border: 1px solid var(--cell-intune-border); }
   .help-dot.close { background: var(--cell-close-bg); border: 1px solid var(--cell-close-border); }
   .help-dot.off { background: var(--cell-off-bg); border: 1px solid var(--cell-off-border); }
+
+  /* Feedback form */
+  .feedback-content { font-size: 13px; }
+  .fb-intro { color: var(--muted); font-size: 12px; margin-bottom: 14px; line-height: 1.5; }
+  .fb-label { display: block; color: var(--text2); font-size: 12px; font-weight: 600; margin: 12px 0 6px; }
+  .fb-stars { display: flex; gap: 4px; }
+  .fb-star {
+    font-size: 24px; color: var(--border); cursor: pointer;
+    transition: color 0.1s;
+  }
+  .fb-star.active { color: #e8b830; }
+  .fb-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fb-opt {
+    padding: 6px 12px; border-radius: 16px; font-size: 11px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); cursor: pointer; font-family: inherit;
+    transition: all 0.1s;
+  }
+  .fb-opt.active {
+    border-color: var(--picker-selected);
+    background: var(--picker-selected-bg);
+    color: var(--text2);
+  }
+  .fb-text {
+    width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-family: inherit; resize: vertical;
+  }
+  .fb-text::placeholder { color: var(--muted); }
+  .fb-submit {
+    width: 100%; margin-top: 14px; padding: 10px; border-radius: 20px;
+    border: 1px solid var(--picker-selected); background: var(--picker-selected-bg);
+    color: var(--picker-selected); font-family: inherit; font-size: 13px;
+    font-weight: 600; cursor: pointer; letter-spacing: 1px;
+  }
+  .fb-thanks {
+    display: none; text-align: center; color: var(--picker-confirmed);
+    font-size: 13px; font-weight: 600; margin-top: 14px;
+  }
+
+  /* Test bar (beta only) */
+  .test-bar {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 6px 16px; z-index: 50;
+    align-items: center; justify-content: center; gap: 10px;
+  }
+  .test-bar.visible { display: flex; }
+  .test-btn {
+    padding: 4px 12px; border-radius: 6px; font-size: 12px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); cursor: pointer; font-family: inherit;
+  }
+  .test-btn:active { background: var(--picker-selected-bg); }
+  .test-reset { margin-left: 10px; color: var(--muted); }
+  .test-day { font-size: 12px; color: var(--muted); min-width: 50px; text-align: center; }
 
   .toggle {
     width: 36px;
@@ -542,6 +608,7 @@
     </div>
     <div class="header-right">
       <div class="icon-btn" id="btnHelp" title="How to play">?</div>
+      <div class="icon-btn" id="btnFeedback" title="Feedback">&#9993;</div>
       <div class="icon-btn" id="btnSound" title="Sound">&#9834;</div>
       <div class="icon-btn" id="btnStats" title="Statistics">&#9689;</div>
       <div class="icon-btn" id="btnSettings" title="Settings">&#9881;</div>
@@ -670,23 +737,86 @@
     <div class="modal-title">How to Play</div>
     <div class="modal-close" id="helpClose">&#10005;</div>
     <div class="help-content">
+      <p class="beta-note">Thanks for testing Spirle! This is an early build — your feedback helps shape the game. Use the &#9993; button to share your thoughts.</p>
       <p>Guess the spirograph in 6 tries.</p>
-      <p>Each spirograph is made from <strong>4 parameters</strong>:</p>
+      <p>Every spirograph is built from <strong>4 choices</strong>:</p>
       <ul>
-        <li><strong>Outer Shape</strong> — the fixed outer curve</li>
-        <li><strong>Inner Shape</strong> — the shape rolling inside</li>
-        <li><strong>Size</strong> — how big the inner shape is</li>
-        <li><strong>Reach</strong> — how far the pen extends</li>
+        <li><strong>Outer Shape</strong> — the frame it draws inside</li>
+        <li><strong>Inner Shape</strong> — the piece that rolls around</li>
+        <li><strong>Size</strong> — how big the rolling piece is</li>
+        <li><strong>Reach</strong> — how far the pen stretches out</li>
       </ul>
-      <p>Tap one option from each group, then tap <strong>Roll</strong> to submit your guess.</p>
+      <p>Pick one from each group, then tap <strong>Roll</strong>.</p>
       <div class="help-feedback">
-        <div class="help-fb-row"><span class="help-dot intune"></span> <strong>In tune</strong> — correct parameter</div>
-        <div class="help-fb-row"><span class="help-dot close"></span> <strong>Close</strong> — one step away</div>
+        <div class="help-fb-row"><span class="help-dot intune"></span> <strong>In tune</strong> — you got it right</div>
+        <div class="help-fb-row"><span class="help-dot close"></span> <strong>Close</strong> — almost, one step away</div>
         <div class="help-fb-row"><span class="help-dot off"></span> <strong>Off</strong> — not close</div>
       </div>
-      <p>The spirograph reveals more with each guess. A new puzzle appears every day.</p>
+      <p>The drawing reveals more with each guess. A new puzzle every day.</p>
     </div>
   </div>
+</div>
+
+<!-- Feedback modal -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-title">Feedback</div>
+    <div class="modal-close" id="feedbackClose">&#10005;</div>
+    <div class="feedback-content">
+      <p class="fb-intro">Help us make Spirle better! All feedback is anonymous.</p>
+
+      <label class="fb-label">How was the overall experience?</label>
+      <div class="fb-stars" id="fbStars">
+        <span class="fb-star" data-val="1">&#9733;</span>
+        <span class="fb-star" data-val="2">&#9733;</span>
+        <span class="fb-star" data-val="3">&#9733;</span>
+        <span class="fb-star" data-val="4">&#9733;</span>
+        <span class="fb-star" data-val="5">&#9733;</span>
+      </div>
+
+      <label class="fb-label">Was the game easy to understand?</label>
+      <div class="fb-options" id="fbEasy">
+        <button class="fb-opt" data-val="yes">Yes, right away</button>
+        <button class="fb-opt" data-val="mostly">Mostly</button>
+        <button class="fb-opt" data-val="no">No, I was confused</button>
+      </div>
+
+      <label class="fb-label">Could you tell the icons apart?</label>
+      <div class="fb-options" id="fbIcons">
+        <button class="fb-opt" data-val="clear">Clear and easy</button>
+        <button class="fb-opt" data-val="ok">OK, some were tricky</button>
+        <button class="fb-opt" data-val="hard">Hard to tell apart</button>
+      </div>
+
+      <label class="fb-label">How did the difficulty feel?</label>
+      <div class="fb-options" id="fbDifficulty">
+        <button class="fb-opt" data-val="easy">Too easy</button>
+        <button class="fb-opt" data-val="right">Just right</button>
+        <button class="fb-opt" data-val="hard">Too hard</button>
+      </div>
+
+      <label class="fb-label">Would you play again tomorrow?</label>
+      <div class="fb-options" id="fbReturn">
+        <button class="fb-opt" data-val="yes">Definitely</button>
+        <button class="fb-opt" data-val="maybe">Maybe</button>
+        <button class="fb-opt" data-val="no">Probably not</button>
+      </div>
+
+      <label class="fb-label">Anything else?</label>
+      <textarea class="fb-text" id="fbText" placeholder="What would you change? What confused you? What did you love?" rows="3"></textarea>
+
+      <button class="fb-submit" id="fbSubmit">Send Feedback</button>
+      <div class="fb-thanks" id="fbThanks">Thanks for your feedback!</div>
+    </div>
+  </div>
+</div>
+
+<!-- Beta test bar (only visible with ?day= param) -->
+<div class="test-bar" id="testBar">
+  <button class="test-btn" id="testPrev">&#9664;</button>
+  <span class="test-day" id="testDay">Day 0</span>
+  <button class="test-btn" id="testNext">&#9654;</button>
+  <button class="test-btn test-reset" id="testReset">Reset</button>
 </div>
 
 <script>
@@ -1563,6 +1693,7 @@ function wireModals() {
   wireModal('btnStats', 'statsModal', 'statsClose', renderStats);
   wireModal('btnSettings', 'settingsModal', 'settingsClose');
   wireModal('btnHelp', 'helpModal', 'helpClose');
+  wireModal('btnFeedback', 'feedbackModal', 'feedbackClose');
 }
 
 // ==============================================
@@ -1684,6 +1815,92 @@ function playWinSound() {
 }
 
 // ==============================================
+// Feedback Form
+// ==============================================
+var fbData = { stars: 0, easy: '', icons: '', difficulty: '', returnPlay: '', text: '' };
+
+function wireFeedback() {
+  // Stars
+  document.querySelectorAll('.fb-star').forEach(function(star) {
+    star.addEventListener('click', function() {
+      fbData.stars = parseInt(star.dataset.val);
+      document.querySelectorAll('.fb-star').forEach(function(s) {
+        s.classList.toggle('active', parseInt(s.dataset.val) <= fbData.stars);
+      });
+    });
+  });
+
+  // Option buttons
+  var optGroups = [
+    { id: 'fbEasy', key: 'easy' },
+    { id: 'fbIcons', key: 'icons' },
+    { id: 'fbDifficulty', key: 'difficulty' },
+    { id: 'fbReturn', key: 'returnPlay' },
+  ];
+  optGroups.forEach(function(group) {
+    document.getElementById(group.id).querySelectorAll('.fb-opt').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        fbData[group.key] = btn.dataset.val;
+        btn.parentElement.querySelectorAll('.fb-opt').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+  });
+
+  // Submit
+  document.getElementById('fbSubmit').addEventListener('click', function() {
+    fbData.text = document.getElementById('fbText').value;
+    fbData.puzzle = currentPuzzle.dayNum;
+    fbData.timestamp = new Date().toISOString();
+
+    // Store locally
+    var allFeedback = [];
+    try { allFeedback = JSON.parse(localStorage.getItem('spirle-feedback') || '[]'); } catch(e) {}
+    allFeedback.push(fbData);
+    localStorage.setItem('spirle-feedback', JSON.stringify(allFeedback));
+
+    // Copy to clipboard for easy sharing
+    var summary = 'Spirle Feedback (Puzzle #' + fbData.puzzle + ')\n' +
+      'Rating: ' + (fbData.stars || '-') + '/5\n' +
+      'Easy to understand: ' + (fbData.easy || '-') + '\n' +
+      'Icons: ' + (fbData.icons || '-') + '\n' +
+      'Difficulty: ' + (fbData.difficulty || '-') + '\n' +
+      'Play again: ' + (fbData.returnPlay || '-') + '\n' +
+      'Comments: ' + (fbData.text || '-');
+
+    navigator.clipboard.writeText(summary).catch(function() {});
+
+    document.getElementById('fbSubmit').style.display = 'none';
+    document.getElementById('fbThanks').style.display = 'block';
+  });
+}
+
+// ==============================================
+// Test Bar (beta day navigation)
+// ==============================================
+function wireTestBar() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('day') === null && !params.has('test')) return;
+
+  var bar = document.getElementById('testBar');
+  bar.classList.add('visible');
+  var currentDay = parseInt(params.get('day') || '0');
+  document.getElementById('testDay').textContent = 'Day ' + currentDay;
+
+  document.getElementById('testPrev').addEventListener('click', function() {
+    var d = Math.max(0, currentDay - 1);
+    window.location.search = '?day=' + d;
+  });
+  document.getElementById('testNext').addEventListener('click', function() {
+    window.location.search = '?day=' + (currentDay + 1);
+  });
+  document.getElementById('testReset').addEventListener('click', function() {
+    localStorage.removeItem('spirle-state');
+    window.location.reload();
+  });
+}
+
+// ==============================================
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
@@ -1697,6 +1914,8 @@ updateGuessCount();
 document.getElementById('rollBtn').addEventListener('click', submitGuess);
 buildSettingsContent();
 wireModals();
+wireFeedback();
+wireTestBar();
 soundEnabled = localStorage.getItem('spirle-sound') !== 'false';
 var soundBtn = document.getElementById('btnSound');
 if (soundEnabled) soundBtn.classList.add('active');
