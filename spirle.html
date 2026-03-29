@@ -1118,6 +1118,172 @@ function updateGuessCount() {
 }
 
 // ==============================================
+// Feedback Computation
+// ==============================================
+function computeFeedback(guess) {
+  const answerIndices = [
+    currentPuzzle.outerIdx, currentPuzzle.innerIdx,
+    currentPuzzle.ratioIdx, currentPuzzle.penIdx,
+  ];
+  const guessIndices = [guess.outer, guess.inner, guess.size, guess.reach];
+  return guessIndices.map((g, i) => {
+    if (g === answerIndices[i]) return 'intune';
+    if (Math.abs(g - answerIndices[i]) === 1) return 'close';
+    return 'off';
+  });
+}
+
+// ==============================================
+// Lap Schedule
+// ==============================================
+const LAPS_SCHEDULE = [2, 3.5, 5, 6.5, 8, 9.5, 12];
+
+// ==============================================
+// Guess Submission
+// ==============================================
+function submitGuess() {
+  if (gameOver) return;
+  const allReady = PARAM_TYPES.every(p => currentSelection[p] !== null);
+  if (!allReady) return;
+
+  const guess = {
+    outer: currentSelection.outer,
+    inner: currentSelection.inner,
+    size:  currentSelection.size,
+    reach: currentSelection.reach,
+  };
+
+  const fb = computeFeedback(guess);
+  guesses.push(guess);
+  feedback.push(fb);
+  animateFeedback(guesses.length - 1, guess, fb);
+}
+
+// ==============================================
+// Feedback Animation
+// ==============================================
+function animateFeedback(rowIdx, guess, fb) {
+  const guessValues = [guess.outer, guess.inner, guess.size, guess.reach];
+
+  for (let cellIdx = 0; cellIdx < 4; cellIdx++) {
+    (function(ci) {
+      setTimeout(function() {
+        const cell = document.getElementById('cell-' + rowIdx + '-' + ci);
+        cell.className = 'guess-cell cell-' + fb[ci];
+        clearCellChildren(cell);
+        const canvas = document.createElement('canvas');
+        cell.appendChild(canvas);
+        drawIcon(canvas, PARAM_TYPES[ci], guessValues[ci], FEEDBACK_COLORS[fb[ci]], 26);
+
+        if (ci === 3) {
+          onFeedbackComplete(rowIdx, fb);
+        }
+      }, ci * 200);
+    })(cellIdx);
+  }
+}
+
+// ==============================================
+// Post-Feedback Logic
+// ==============================================
+function onFeedbackComplete(rowIdx, fb) {
+  updatePickerStates();
+
+  const won = fb.every(function(f) { return f === 'intune'; });
+  if (won) { gameOver = true; onWin(); return; }
+  if (guesses.length >= MAX_GUESSES) { gameOver = true; onLose(); return; }
+
+  revealMoreLaps(LAPS_SCHEDULE[guesses.length] || 12);
+  resetSelectionForNextGuess();
+  updateGuessCount();
+  document.getElementById('rollBtn').setAttribute('disabled', '');
+}
+
+// ==============================================
+// Picker State Updates
+// ==============================================
+function updatePickerStates() {
+  PARAM_TYPES.forEach(function(paramType, paramIdx) {
+    const picker = document.getElementById('picker-' + paramType);
+    const options = picker.querySelectorAll('.picker-option');
+
+    // Find confirmed index and off indices for this param
+    let confirmedIdx = null;
+    const offIndices = new Set();
+
+    for (let g = 0; g < guesses.length; g++) {
+      const guessVal = [guesses[g].outer, guesses[g].inner, guesses[g].size, guesses[g].reach][paramIdx];
+      const fb = feedback[g][paramIdx];
+      if (fb === 'intune') {
+        confirmedIdx = guessVal;
+      } else if (fb === 'off') {
+        offIndices.add(guessVal);
+      }
+    }
+
+    options.forEach(function(optEl) {
+      const idx = parseInt(optEl.dataset.idx, 10);
+      optEl.classList.remove('selected');
+
+      if (confirmedIdx !== null && idx === confirmedIdx) {
+        optEl.classList.add('confirmed');
+        optEl.classList.remove('eliminated');
+        currentSelection[paramType] = idx;
+        // Redraw icon with confirmed color
+        clearCellChildren(optEl);
+        const cv = document.createElement('canvas');
+        drawIcon(cv, paramType, idx, FEEDBACK_COLORS.confirmed, 28);
+        optEl.appendChild(cv);
+      } else if (confirmedIdx !== null) {
+        // Param is confirmed, eliminate all others
+        optEl.classList.add('eliminated');
+        optEl.classList.remove('confirmed');
+      } else if (offIndices.has(idx)) {
+        optEl.classList.add('eliminated');
+        optEl.classList.remove('confirmed');
+      }
+    });
+  });
+}
+
+function resetSelectionForNextGuess() {
+  PARAM_TYPES.forEach(function(paramType) {
+    // Check if this param is confirmed
+    const picker = document.getElementById('picker-' + paramType);
+    const hasConfirmed = picker.querySelector('.picker-option.confirmed');
+    if (!hasConfirmed) {
+      currentSelection[paramType] = null;
+    }
+  });
+  updateCurrentRowPreview();
+}
+
+// ==============================================
+// Win / Lose Handlers
+// ==============================================
+function shareResult() {} // placeholder, Task 7 fills this in
+
+function onWin() {
+  revealMoreLaps(12);
+  const btn = document.getElementById('rollBtn');
+  btn.textContent = 'Share';
+  btn.removeAttribute('disabled');
+  btn.removeEventListener('click', submitGuess);
+  btn.addEventListener('click', shareResult);
+  document.getElementById('guessCount').textContent = 'In tune! \u{1F3B5}';
+}
+
+function onLose() {
+  revealMoreLaps(12);
+  const btn = document.getElementById('rollBtn');
+  btn.textContent = 'Share';
+  btn.removeAttribute('disabled');
+  btn.removeEventListener('click', submitGuess);
+  btn.addEventListener('click', shareResult);
+  document.getElementById('guessCount').textContent = currentAnswer.outer + ' + ' + currentAnswer.inner;
+}
+
+// ==============================================
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
@@ -1128,6 +1294,7 @@ window.addEventListener('resize', redrawTargetInstant);
 buildGuessRows();
 buildPickers();
 updateGuessCount();
+document.getElementById('rollBtn').addEventListener('click', submitGuess);
 </script>
 </body>
 </html>
