@@ -1873,13 +1873,11 @@ function wireFeedback() {
       fetch(FEEDBACK_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(fbData)
-      }).then(function(res) {
+        body: JSON.stringify(fbData),
+        mode: 'no-cors'
+      }).finally(function() {
         submitBtn.style.display = 'none';
         thanksEl.style.display = 'block';
-      }).catch(function(err) {
-        submitBtn.textContent = 'Failed — tap to retry';
-        submitBtn.disabled = false;
       });
     } else {
       submitBtn.style.display = 'none';
