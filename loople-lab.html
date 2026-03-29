@@ -930,63 +930,84 @@ function drawPointsOnCanvas(points, colorFn, lineWidth, alpha) {
   }
 }
 
-// Redraw everything: clear canvas, draw target instant, draw guess instant
-function redrawCanvas() {
+// Redraw target only (from stored points) — call on resize
+function redrawTargetOnly() {
   initTargetCanvas();
-
-  // Draw target in muted gray — the ghost you're chasing
-  var targetGray = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.18)';
+  var targetGray = isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.2)';
   drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function() {
     return targetGray;
   }, 1.5, 0.7);
-
-  // Draw guess overlay if we have selections
-  drawGuessOverlay();
 }
 
-function drawGuessOverlay() {
-  // Build a guess answer from current selections (use answer for locked params)
-  var hasAny = false;
-  var guessAnswer = {};
+// Build guess answer from current selections
+function buildGuessAnswer() {
   var cfg = currentPuzzle.config;
+  if (currentSelection.outer === null || currentSelection.inner === null ||
+      currentSelection.size === null || currentSelection.reach === null) return null;
+  return {
+    outer: cfg.outer[currentSelection.outer],
+    inner: cfg.inner[currentSelection.inner],
+    ratio: RATIOS[currentSelection.size],
+    pen:   PENS[currentSelection.reach],
+  };
+}
 
-  // Outer
-  if (currentSelection.outer !== null) {
-    guessAnswer.outer = cfg.outer[currentSelection.outer];
-    hasAny = true;
-  } else return;
+// Animate the guess spirograph drawing (called on Roll)
+var guessAnimId = null;
+var guessAnimPoints = [];
+var guessDrawIdx = 0;
 
-  // Inner
-  if (currentSelection.inner !== null) {
-    guessAnswer.inner = cfg.inner[currentSelection.inner];
-    hasAny = true;
-  } else return;
+function animateGuess() {
+  guessAnimId = null;
+  if (!guessAnimPoints.length || guessDrawIdx >= guessAnimPoints.length) return;
 
-  // Size (ratio)
-  if (currentSelection.size !== null) {
-    guessAnswer.ratio = RATIOS[currentSelection.size];
-    hasAny = true;
-  } else return;
-
-  // Reach (pen)
-  if (currentSelection.reach !== null) {
-    guessAnswer.pen = PENS[currentSelection.reach];
-    hasAny = true;
-  } else return;
-
-  if (!hasAny) return;
-
-  // Compute guess points at same lap count as currently revealed target
-  var guessPoints = computeTargetPoints(guessAnswer, currentPuzzle, targetMaxLaps);
-
-  // Your spirograph in the vibrant daily color
+  var rect = targetCanvas.parentElement.getBoundingClientRect();
+  var cx = rect.width / 2, cy = rect.height / 2;
+  var maxR = guessAnimPoints[0].maxR;
+  var scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  var canvasW = rect.width;
   var hueRange = currentPuzzle.config.hue;
-  drawPointsOnCanvas(guessPoints, function(i, total) {
-    var progress = i / total;
+
+  var batchSize = Math.max(1, Math.round(3 * currentPuzzle.config.speed));
+  var end = Math.min(guessDrawIdx + batchSize, guessAnimPoints.length);
+
+  for (var i = guessDrawIdx; i < end; i++) {
+    if (i === 0) { guessDrawIdx = i + 1; continue; }
+    var prev = guessAnimPoints[i - 1];
+    var curr = guessAnimPoints[i];
+    var px = cx + prev.x * scale, py = cy + prev.y * scale;
+    var qx = cx + curr.x * scale, qy = cy + curr.y * scale;
+    var jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+    if (jump > canvasW * 0.3) { guessDrawIdx = i + 1; continue; }
+
+    var progress = i / guessAnimPoints.length;
     var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
     var lightness = TRACE_LIGHTNESS + 10 * Math.sin(i * 0.01);
-    return 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.75)';
-  }, 1.8, 0.5);
+    targetCtx.strokeStyle = 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.75)';
+    targetCtx.lineWidth = 1.8;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+  }
+  guessDrawIdx = end;
+
+  if (guessDrawIdx < guessAnimPoints.length) {
+    guessAnimId = requestAnimationFrame(animateGuess);
+  }
+}
+
+function startGuessAnimation() {
+  var answer = buildGuessAnswer();
+  if (!answer) return;
+
+  // Clear canvas and redraw target, then animate guess on top
+  redrawTargetOnly();
+  guessAnimPoints = computeTargetPoints(answer, currentPuzzle, targetMaxLaps);
+  guessDrawIdx = 0;
+  if (guessAnimId) cancelAnimationFrame(guessAnimId);
+  animateGuess();
 }
 
 // Animated drawing of target
@@ -1049,7 +1070,7 @@ function revealMoreLaps(newLapCount) {
   targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
   targetDrawIdx = Math.min(oldCount, targetAnimPoints.length);
   // Redraw everything cleanly then continue animating new points
-  redrawCanvas();
+  redrawTargetOnly();
   if (targetDrawIdx < targetAnimPoints.length) {
     animateTarget();
   }
@@ -1111,9 +1132,6 @@ function onPickerTap(paramType, valueIdx, optEl) {
   currentSelection[paramType] = valueIdx;
 
   checkRollReady();
-
-  // Live preview: redraw canvas with new guess overlay
-  redrawCanvas();
 }
 
 function checkRollReady() {
@@ -1199,8 +1217,14 @@ function submitGuess() {
   guesses.push(guess);
   feedback.push(fb);
 
-  // Animate: lock newly correct params with chimes
-  animateRollResult(paramResults, newLocks, fb);
+  // Draw the guess spirograph animated, then show results
+  startGuessAnimation();
+
+  // After guess finishes drawing, show lock results
+  var drawTime = guessAnimPoints.length / (3 * currentPuzzle.config.speed) * 16; // rough ms
+  setTimeout(function() {
+    animateRollResult(paramResults, newLocks, fb);
+  }, Math.min(drawTime, 3000));
 }
 
 function animateRollResult(paramResults, newLocks, fb) {
@@ -1302,7 +1326,7 @@ function onWin() {
   document.getElementById('guessStatus').textContent = 'Perfect match!';
 
   // Redraw canvas — both spirographs now identical, they overlap
-  setTimeout(function() { redrawCanvas(); }, 300);
+  setTimeout(function() { redrawTargetOnly(); }, 300);
   showEndModal(true);
 }
 
@@ -1335,7 +1359,7 @@ function onLose() {
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Next time!';
 
-  setTimeout(function() { redrawCanvas(); }, 300);
+  setTimeout(function() { redrawTargetOnly(); }, 300);
   showEndModal(false);
 }
 
@@ -1493,7 +1517,7 @@ function restoreGameState() {
   // Redraw target at correct lap count (instant)
   targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
   targetDrawIdx = targetAnimPoints.length;
-  redrawCanvas();
+  redrawTargetOnly();
 
   if (gameOver) {
     document.getElementById('rollBtn').setAttribute('disabled', '');
@@ -1544,7 +1568,7 @@ var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum + ' \u00B7 ' + DAY_NAMES[currentPuzzle.weekDay];
 targetMaxLaps = currentPuzzle.config.initLaps;
 startTarget();
-window.addEventListener('resize', redrawCanvas);
+window.addEventListener('resize', redrawTargetOnly);
 buildPickers();
 updateGuessCount();
 document.getElementById('rollBtn').addEventListener('click', submitGuess);
