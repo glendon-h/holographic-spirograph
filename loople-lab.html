@@ -934,13 +934,10 @@ function drawPointsOnCanvas(points, colorFn, lineWidth, alpha) {
 function redrawCanvas() {
   initTargetCanvas();
 
-  // Draw target (all revealed points so far)
-  var hueRange = currentPuzzle.config.hue;
-  drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function(i, total) {
-    var progress = i / total;
-    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
-    var lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
-    return 'hsla(' + hue + ', 65%, ' + lightness + '%, 0.7)';
+  // Draw target in muted gray — the ghost you're chasing
+  var targetGray = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.18)';
+  drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function() {
+    return targetGray;
   }, 1.5, 0.7);
 
   // Draw guess overlay if we have selections
@@ -982,11 +979,13 @@ function drawGuessOverlay() {
   // Compute guess points at same lap count as currently revealed target
   var guessPoints = computeTargetPoints(guessAnswer, currentPuzzle, targetMaxLaps);
 
-  // Pick contrasting color: cyan for dark mode, blue-purple for light
-  var guessColor = isLight ? 'rgba(60, 130, 220, 0.55)' : 'rgba(0, 230, 255, 0.45)';
-
-  drawPointsOnCanvas(guessPoints, function() {
-    return guessColor;
+  // Your spirograph in the vibrant daily color
+  var hueRange = currentPuzzle.config.hue;
+  drawPointsOnCanvas(guessPoints, function(i, total) {
+    var progress = i / total;
+    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
+    var lightness = TRACE_LIGHTNESS + 10 * Math.sin(i * 0.01);
+    return 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.75)';
   }, 1.8, 0.5);
 }
 
@@ -1000,7 +999,6 @@ function animateTarget() {
   var end = Math.min(targetDrawIdx + batchSize, targetAnimPoints.length);
 
   // Draw just the new segment on top (no clearing for perf during animation)
-  var hueRange = currentPuzzle.config.hue;
   var rect = targetCanvas.parentElement.getBoundingClientRect();
   var cx = rect.width / 2;
   var cy = rect.height / 2;
@@ -1020,10 +1018,8 @@ function animateTarget() {
     var jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
     if (jump > canvasW * 0.3) { targetDrawIdx = i + 1; continue; }
 
-    var progress = i / targetAnimPoints.length;
-    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
-    var lightness = TRACE_LIGHTNESS + 12 * Math.sin(i * 0.01);
-    targetCtx.strokeStyle = 'hsla(' + hue + ', 65%, ' + lightness + '%, 0.7)';
+    var targetGray = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.18)';
+    targetCtx.strokeStyle = targetGray;
     targetCtx.lineWidth = 1.5;
     targetCtx.lineCap = 'round';
     targetCtx.beginPath();
