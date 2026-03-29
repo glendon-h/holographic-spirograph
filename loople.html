@@ -1872,7 +1872,7 @@ function wireFeedback() {
       submitBtn.disabled = true;
       fetch(FEEDBACK_WEBHOOK, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(fbData)
       }).then(function(res) {
         submitBtn.style.display = 'none';
