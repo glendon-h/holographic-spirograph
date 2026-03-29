@@ -173,8 +173,8 @@
      Target canvas (180px circle)
   ===================== */
   .target-wrap {
-    width: min(180px, 30vh);
-    height: min(180px, 30vh);
+    width: min(240px, 38vh);
+    height: min(240px, 38vh);
     flex-shrink: 1;
     position: relative;
     border-radius: 50%;
@@ -212,32 +212,31 @@
     gap: 4px;
     min-height: 0;
   }
-  .picker-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
   .picker-group {
     background: var(--bg2);
     border: 1px solid var(--border2);
     border-radius: 10px;
-    padding: 4px 6px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .picker-label {
     font-size: 8px;
     color: var(--muted2);
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 5px;
-    text-align: center;
+    letter-spacing: 1px;
+    min-width: 42px;
+    text-align: right;
   }
   .picker-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    display: flex;
     gap: 4px;
+    flex: 1;
   }
   .picker-option {
-    aspect-ratio: 1;
+    flex: 1;
+    height: 36px;
     border-radius: 6px;
     min-width: 0;
     border: 1px solid var(--border);
@@ -778,6 +777,7 @@ const FOURIER_SHAPES = {
   blob:      (t) => { const r = 1 + 0.3*Math.sin(2*t+0.5) + 0.2*Math.cos(3*t+1) + 0.15*Math.sin(5*t+2); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
   butterfly: (t) => { const r = Math.exp(Math.sin(t)) - 2*Math.cos(4*t) + Math.pow(Math.abs(Math.sin((2*t-Math.PI)/24)), 5); return { x: r*Math.cos(t)*0.25, y: r*Math.sin(t)*0.25 }; },
   star:      (t) => { const r = superformula(t, 5, 0.3, 0.3, 0.3); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  flower:    (t) => { const r = 1 + 0.3*Math.cos(8*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
 };
 
 function fitFourier(fn, n) {
@@ -852,10 +852,10 @@ function arc2theta(table, target) {
 // ==============================================
 // Parameter Space
 // ==============================================
-const OUTER_SHAPES = ['circle', 'heart', 'blob', 'starfish'];
-const INNER_SHAPES = ['circle', 'star', 'trefoil', 'butterfly'];
-const RATIOS       = [0.2, 0.3, 0.4, 0.5];
-const PENS         = [0.4, 0.6, 0.8, 1.0];
+const OUTER_SHAPES = ['circle', 'heart', 'blob', 'starfish', 'flower'];
+const INNER_SHAPES = ['circle', 'star', 'trefoil', 'butterfly', 'blob'];
+const RATIOS       = [0.2, 0.25, 0.3, 0.4, 0.5];
+const PENS         = [0.4, 0.55, 0.7, 0.85, 1.0];
 
 // ==============================================
 // Daily Puzzle Seeding
@@ -885,11 +885,11 @@ function getDailyPuzzle() {
   }
   const h = hashDate(dateStr);
   return {
-    outerIdx:  h % 4,
-    innerIdx:  (h >> 2) % 4,
-    ratioIdx:  (h >> 4) % 4,
-    penIdx:    (h >> 6) % 4,
-    rotation:  ((h >> 8) % 360) * Math.PI / 180,
+    outerIdx:  h % 5,
+    innerIdx:  (h >> 3) % 5,
+    ratioIdx:  (h >> 6) % 5,
+    penIdx:    (h >> 9) % 5,
+    rotation:  ((h >> 12) % 360) * Math.PI / 180,
     dayNum,
     dateStr
   };
@@ -1130,38 +1130,40 @@ function drawShapeIcon(canvas, shapeName, color, size) {
 
 function drawSizeIcon(canvas, level, color, size) {
   const ctx = initCanvas(canvas, size);
-  const barCount = level + 1; // 1-4 bars
-  const barW = 4;
-  const gap = 2;
-  const totalW = 4 * barW + 3 * gap;
+  const n = 5;
+  const barCount = level + 1;
+  const barW = 3;
+  const gap = 1.5;
+  const totalW = n * barW + (n - 1) * gap;
   const startX = (size - totalW) / 2;
-  const baseY = size * 0.78;
-  const maxH = size * 0.55;
+  const baseY = size * 0.8;
+  const maxH = size * 0.58;
   const dim = color.replace(/[\d.]+\)$/, '0.15)');
 
-  for (let i = 0; i < 4; i++) {
-    const h = maxH * ((i + 1) / 4);
+  for (let i = 0; i < n; i++) {
+    const h = maxH * ((i + 1) / n);
     const x = startX + i * (barW + gap);
     const y = baseY - h;
     ctx.fillStyle = i < barCount ? color : dim;
     ctx.beginPath();
-    ctx.roundRect(x, y, barW, h, 1.5);
+    ctx.roundRect(x, y, barW, h, 1);
     ctx.fill();
   }
 }
 
 function drawReachIcon(canvas, level, color, size) {
   const ctx = initCanvas(canvas, size);
-  const arcCount = level + 1; // 1-4 arcs
+  const n = 5;
+  const arcCount = level + 1;
   const cx = 1;
   const cy = size - 1;
   const maxR = size * 0.85;
   const dim = color.replace(/[\d.]+\)$/, '0.12)');
 
-  for (let i = 0; i < 4; i++) {
-    const r = maxR * ((i + 1) / 4);
+  for (let i = 0; i < n; i++) {
+    const r = maxR * ((i + 1) / n);
     ctx.strokeStyle = i < arcCount ? color : dim;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(cx, cy, r, -Math.PI / 2, 0);
     ctx.stroke();
@@ -1193,46 +1195,38 @@ let gameOver         = false;
 function buildPickers() {
   const area = document.getElementById('pickersArea');
 
-  for (let rowIdx = 0; rowIdx < 2; rowIdx++) {
-    const pickerRow = document.createElement('div');
-    pickerRow.className = 'picker-row';
+  for (let paramIdx = 0; paramIdx < 4; paramIdx++) {
+    const paramType = PARAM_TYPES[paramIdx];
+    const label = PARAM_LABELS[paramIdx];
 
-    for (let colIdx = 0; colIdx < 2; colIdx++) {
-      const paramIdx  = rowIdx * 2 + colIdx;
-      const paramType = PARAM_TYPES[paramIdx];
-      const label     = PARAM_LABELS[paramIdx];
+    const group = document.createElement('div');
+    group.className = 'picker-group';
 
-      const group = document.createElement('div');
-      group.className = 'picker-group';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'picker-label';
+    labelEl.textContent = label;
+    group.appendChild(labelEl);
 
-      const labelEl = document.createElement('div');
-      labelEl.className = 'picker-label';
-      labelEl.textContent = label;
-      group.appendChild(labelEl);
+    const optionsEl = document.createElement('div');
+    optionsEl.className = 'picker-options';
+    optionsEl.id = 'picker-' + paramType;
 
-      const optionsEl = document.createElement('div');
-      optionsEl.className = 'picker-options';
-      optionsEl.id = 'picker-' + paramType;
+    for (let valueIdx = 0; valueIdx < 5; valueIdx++) {
+      const optEl = document.createElement('div');
+      optEl.className = 'picker-option';
+      optEl.dataset.param = paramType;
+      optEl.dataset.idx = valueIdx;
 
-      for (let valueIdx = 0; valueIdx < 4; valueIdx++) {
-        const optEl = document.createElement('div');
-        optEl.className = 'picker-option';
-        optEl.dataset.param = paramType;
-        optEl.dataset.idx   = valueIdx;
+      const cv = document.createElement('canvas');
+      drawIcon(cv, paramType, valueIdx, FEEDBACK_COLORS.neutral, 28);
+      optEl.appendChild(cv);
 
-        const cv = document.createElement('canvas');
-        drawIcon(cv, paramType, valueIdx, FEEDBACK_COLORS.neutral, 28);
-        optEl.appendChild(cv);
-
-        optEl.addEventListener('click', () => onPickerTap(paramType, valueIdx, optEl));
-        optionsEl.appendChild(optEl);
-      }
-
-      group.appendChild(optionsEl);
-      pickerRow.appendChild(group);
+      optEl.addEventListener('click', () => onPickerTap(paramType, valueIdx, optEl));
+      optionsEl.appendChild(optEl);
     }
 
-    area.appendChild(pickerRow);
+    group.appendChild(optionsEl);
+    area.appendChild(group);
   }
 }
 
