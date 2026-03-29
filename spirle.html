@@ -907,8 +907,8 @@ function drawShapeIcon(canvas, shapeName, color, size) {
   const shape = makeShape(shapeName);
   let maxR = 0;
   for (let i = 0; i < 200; i++) {
-    const t = i / 200;
-    const pt = shape(t);
+    const t = (i / 200) * Math.PI * 2;
+    const pt = shape.getPoint(t);
     const r = Math.sqrt(pt.x * pt.x + pt.y * pt.y);
     if (r > maxR) maxR = r;
   }
@@ -919,8 +919,8 @@ function drawShapeIcon(canvas, shapeName, color, size) {
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   for (let i = 0; i <= 300; i++) {
-    const t = i / 300;
-    const pt = shape(t);
+    const t = (i / 300) * Math.PI * 2;
+    const pt = shape.getPoint(t);
     const x = cx + pt.x * scale;
     const y = cy + pt.y * scale;
     if (i === 0) ctx.moveTo(x, y);
