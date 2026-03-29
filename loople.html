@@ -302,44 +302,37 @@
   }
 
   /* =====================
-     Mastermind result rows
+     Result strip — horizontal line clusters
   ===================== */
-  .result-rows {
+  .result-strip {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
     flex-shrink: 0;
-    margin: 6px 0;
+    min-height: 24px;
+    margin: 4px 0;
   }
-  .result-row {
+  .result-cluster {
     display: flex;
-    gap: 5px;
-    align-items: center;
-    height: 14px;
+    gap: 2px;
+    align-items: flex-end;
   }
-  .result-row.active {
-    opacity: 1;
-  }
-  .r-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+  .r-line {
+    width: 3px;
+    height: 16px;
+    border-radius: 1.5px;
     background: var(--cell-empty-bg);
-    border: 1px solid var(--cell-empty-border);
     transition: all 0.3s ease;
   }
-  .r-dot.intune {
+  .r-line.intune {
     background: #3a9a5a;
-    border-color: #2a6a4a;
   }
-  .r-dot.close {
+  .r-line.close {
     background: #c8a840;
-    border-color: #8a7a2a;
   }
-  .r-dot.off {
-    background: #4a4a5a;
-    border-color: #3a3a4a;
+  .r-line.off {
+    background: #3a3a4a;
   }
   .guess-status {
     font-size: 10px;
@@ -660,15 +653,8 @@
     <canvas id="target"></canvas>
   </div>
 
-  <!-- Mastermind result rows -->
-  <div class="result-rows" id="resultRows">
-    <div class="result-row" id="rrow-0"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-    <div class="result-row" id="rrow-1"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-    <div class="result-row" id="rrow-2"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-    <div class="result-row" id="rrow-3"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-    <div class="result-row" id="rrow-4"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-    <div class="result-row" id="rrow-5"><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span><span class="r-dot"></span></div>
-  </div>
+  <!-- Result strip — one row, guess clusters left to right -->
+  <div class="result-strip" id="resultStrip"></div>
 
   <!-- Pickers area — JS will populate -->
   <div class="pickers-area" id="pickersArea">
@@ -1509,34 +1495,42 @@ function submitGuess() {
 // Feedback Animation
 // ==============================================
 function animateFeedback(rowIdx, guess, fb) {
-  // Sort feedback: intune first, then close, then off (Mastermind style — don't reveal which param)
   var sorted = fb.slice().sort(function(a, b) {
     var order = { intune: 0, close: 1, off: 2 };
     return order[a] - order[b];
   });
 
-  var row = document.getElementById('rrow-' + rowIdx);
-  var dots = row.querySelectorAll('.r-dot');
-  row.classList.add('active');
-
-  // Deselect all pickers (just remove selection highlight, no feedback)
+  // Deselect all pickers
   PARAM_TYPES.forEach(function(p) {
     document.getElementById('picker-' + p).querySelectorAll('.picker-option').forEach(function(opt) {
       opt.classList.remove('selected');
     });
   });
 
-  // Animate dots left to right
+  // Create a new cluster in the strip
+  var strip = document.getElementById('resultStrip');
+  var cluster = document.createElement('div');
+  cluster.className = 'result-cluster';
+  var lines = [];
+  for (var i = 0; i < 4; i++) {
+    var line = document.createElement('span');
+    line.className = 'r-line';
+    cluster.appendChild(line);
+    lines.push(line);
+  }
+  strip.appendChild(cluster);
+
+  // Animate lines left to right
   for (var i = 0; i < 4; i++) {
     (function(idx) {
       setTimeout(function() {
-        dots[idx].classList.add(sorted[idx]);
+        lines[idx].classList.add(sorted[idx]);
         playFeedbackSound(sorted[idx], idx);
 
         if (idx === 3) {
           onFeedbackComplete(rowIdx, fb);
         }
-      }, idx * 200);
+      }, idx * 150);
     })(i);
   }
 }
@@ -1606,22 +1600,23 @@ function showEndModal(won) {
   updateGuessCount(); // make sure dots are current
   document.getElementById('endTitle').textContent = won ? 'In Tune! \u{1F3B5}' : 'Not Quite';
 
-  // Copy result rows into modal
+  // Copy result clusters into modal
   var endDots = document.getElementById('endDots');
   while (endDots.firstChild) endDots.removeChild(endDots.firstChild);
+  endDots.style.cssText = 'display:flex;gap:8px;justify-content:center;';
   for (var i = 0; i < feedback.length; i++) {
-    var rowDiv = document.createElement('div');
-    rowDiv.style.cssText = 'display:flex;gap:4px;margin:2px 0;';
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
     var sorted = feedback[i].slice().sort(function(a, b) {
       var order = { intune: 0, close: 1, off: 2 };
       return order[a] - order[b];
     });
     for (var d = 0; d < 4; d++) {
-      var dot = document.createElement('span');
-      dot.className = 'r-dot ' + sorted[d];
-      endDots.appendChild(dot);
+      var line = document.createElement('span');
+      line.className = 'r-line ' + sorted[d];
+      cluster.appendChild(line);
     }
-    endDots.appendChild(rowDiv);
+    endDots.appendChild(cluster);
   }
 
   // Show answer
@@ -1831,17 +1826,20 @@ function restoreGameState() {
     guesses.push(state.guesses[g]);
     feedback.push(state.feedback[g]);
 
-    // Restore result row dots (sorted Mastermind style)
+    // Restore result cluster in strip
     var sorted = state.feedback[g].slice().sort(function(a, b) {
       var order = { intune: 0, close: 1, off: 2 };
       return order[a] - order[b];
     });
-    var row = document.getElementById('rrow-' + g);
-    var dots = row.querySelectorAll('.r-dot');
-    row.classList.add('active');
+    var strip = document.getElementById('resultStrip');
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
     for (var d = 0; d < 4; d++) {
-      dots[d].classList.add(sorted[d]);
+      var line = document.createElement('span');
+      line.className = 'r-line ' + sorted[d];
+      cluster.appendChild(line);
     }
+    strip.appendChild(cluster);
   }
 
   // Set target lap count based on progress
