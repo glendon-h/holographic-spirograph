@@ -433,7 +433,7 @@
   <div class="header">
     <div class="header-left">
       <h1>Spirle</h1>
-      <span class="puzzle-num">#1</span>
+      <span class="puzzle-num" id="puzzleNum">#1</span>
     </div>
     <div class="header-right">
       <div class="icon-btn" id="btnSound" title="Sound">&#9834;</div>
@@ -568,7 +568,149 @@
 
 
 <script>
-// Game code will go here (added in later tasks)
+// ==============================================
+// Shape Math Engine
+// ==============================================
+
+function superformula(theta, m, n1, n2, n3) {
+  const t = m * theta / 4;
+  const t1 = Math.pow(Math.abs(Math.cos(t)), n2);
+  const t2 = Math.pow(Math.abs(Math.sin(t)), n3);
+  const sum = t1 + t2;
+  return sum === 0 ? 1 : Math.pow(sum, -1 / n1);
+}
+
+const FOURIER_TERMS = 12;
+const FOURIER_SHAPES = {
+  circle:    (t) => ({ x: Math.cos(t), y: Math.sin(t) }),
+  heart:     (t) => ({ x: 16*Math.pow(Math.sin(t),3)/17, y: -(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/17 }),
+  trefoil:   (t) => { const r = 1 + 0.5*Math.cos(3*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  starfish:  (t) => { const r = 1 + 0.4*Math.cos(5*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  blob:      (t) => { const r = 1 + 0.3*Math.sin(2*t+0.5) + 0.2*Math.cos(3*t+1) + 0.15*Math.sin(5*t+2); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  butterfly: (t) => { const r = Math.exp(Math.sin(t)) - 2*Math.cos(4*t) + Math.pow(Math.abs(Math.sin((2*t-Math.PI)/24)), 5); return { x: r*Math.cos(t)*0.25, y: r*Math.sin(t)*0.25 }; },
+  star:      (t) => { const r = superformula(t, 5, 0.3, 0.3, 0.3); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+};
+
+function fitFourier(fn, n) {
+  const N = 1024, r = [];
+  let dx = 0, dy = 0;
+  for (let i = 0; i < N; i++) { const t = (i/N)*Math.PI*2, p = fn(t); dx += p.x; dy += p.y; }
+  r.dcX = dx/N; r.dcY = dy/N;
+  for (let k = 1; k <= n; k++) {
+    let cx = 0, sx = 0, cy = 0, sy = 0;
+    for (let i = 0; i < N; i++) {
+      const t = (i/N)*Math.PI*2, p = fn(t);
+      cx += p.x*Math.cos(k*t); sx += p.x*Math.sin(k*t);
+      cy += p.y*Math.cos(k*t); sy += p.y*Math.sin(k*t);
+    }
+    r.push({ cx: cx*2/N, sx: sx*2/N, cy: cy*2/N, sy: sy*2/N });
+  }
+  return r;
+}
+
+function fourierPt(t, c) {
+  let x = c.dcX || 0, y = c.dcY || 0;
+  for (let i = 0; i < c.length; i++) {
+    const k = i + 1;
+    x += c[i].cx*Math.cos(k*t) + c[i].sx*Math.sin(k*t);
+    y += c[i].cy*Math.cos(k*t) + c[i].sy*Math.sin(k*t);
+  }
+  return { x, y };
+}
+
+const fourierCache = {};
+function getFC(name) {
+  if (!fourierCache[name]) fourierCache[name] = fitFourier(FOURIER_SHAPES[name], FOURIER_TERMS);
+  return fourierCache[name];
+}
+
+function makeShape(name) {
+  if (name === 'star') {
+    return {
+      getPoint(t)       { const r = superformula(t, 5, 0.3, 0.3, 0.3); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+      getPolarRadius(t) { return superformula(t, 5, 0.3, 0.3, 0.3); }
+    };
+  }
+  const c = getFC(name);
+  return {
+    getPoint(t)       { return fourierPt(t, c); },
+    getPolarRadius(t) { const pt = fourierPt(t, c); return Math.sqrt(pt.x*pt.x + pt.y*pt.y); }
+  };
+}
+
+function arcTable(shape, n) {
+  const t = [{ theta: 0, arcLen: 0 }];
+  let total = 0, prev = shape.getPoint(0);
+  for (let i = 1; i <= n; i++) {
+    const th = (i/n)*Math.PI*2, p = shape.getPoint(th);
+    total += Math.sqrt((p.x-prev.x)**2 + (p.y-prev.y)**2);
+    t.push({ theta: th, arcLen: total });
+    prev = p;
+  }
+  return { table: t, totalLen: total };
+}
+
+function arc2theta(table, target) {
+  let lo = 0, hi = table.length - 1;
+  while (lo < hi - 1) {
+    const m = (lo + hi) >> 1;
+    if (table[m].arcLen < target) lo = m; else hi = m;
+  }
+  const range = table[hi].arcLen - table[lo].arcLen;
+  return range === 0 ? table[lo].theta : table[lo].theta + (target - table[lo].arcLen) / range * (table[hi].theta - table[lo].theta);
+}
+
+// ==============================================
+// Parameter Space
+// ==============================================
+const OUTER_SHAPES = ['circle', 'heart', 'blob', 'starfish'];
+const INNER_SHAPES = ['circle', 'star', 'trefoil', 'butterfly'];
+const RATIOS       = [0.2, 0.3, 0.4, 0.5];
+const PENS         = [0.4, 0.6, 0.8, 1.0];
+
+// ==============================================
+// Daily Puzzle Seeding
+// ==============================================
+function hashDate(dateStr) {
+  let h = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    h = (Math.imul(31, h) + dateStr.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function getDailyPuzzle() {
+  const epoch = new Date('2026-03-29');
+  const now   = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const dayNum  = Math.floor((now - epoch) / 86400000);
+  const h = hashDate(dateStr);
+  return {
+    outerIdx:  h % 4,
+    innerIdx:  (h >> 2) % 4,
+    ratioIdx:  (h >> 4) % 4,
+    penIdx:    (h >> 6) % 4,
+    rotation:  ((h >> 8) % 360) * Math.PI / 180,
+    dayNum,
+    dateStr
+  };
+}
+
+function getPuzzleAnswer(puzzle) {
+  return {
+    outer: OUTER_SHAPES[puzzle.outerIdx],
+    inner: INNER_SHAPES[puzzle.innerIdx],
+    ratio: RATIOS[puzzle.ratioIdx],
+    pen:   PENS[puzzle.penIdx]
+  };
+}
+
+// ==============================================
+// Initialization
+// ==============================================
+const currentPuzzle = getDailyPuzzle();
+const currentAnswer = getPuzzleAnswer(currentPuzzle);
+document.getElementById('puzzleNum').textContent = '#' + currentPuzzle.dayNum;
 </script>
 </body>
 </html>
