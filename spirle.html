@@ -1193,7 +1193,10 @@ function onFeedbackComplete(rowIdx, fb) {
   if (won) { gameOver = true; onWin(); return; }
   if (guesses.length >= MAX_GUESSES) { gameOver = true; onLose(); return; }
 
-  revealMoreLaps(LAPS_SCHEDULE[guesses.length] || 12);
+  if (!hardMode) {
+    revealMoreLaps(LAPS_SCHEDULE[guesses.length] || 12);
+  }
+  saveGameState();
   resetSelectionForNextGuess();
   updateGuessCount();
   document.getElementById('rollBtn').setAttribute('disabled', '');
@@ -1261,10 +1264,26 @@ function resetSelectionForNextGuess() {
 // ==============================================
 // Win / Lose Handlers
 // ==============================================
-function shareResult() {} // placeholder, Task 7 fills this in
+function shareResult() {
+  var emojis = { intune: '\u{1F7E2}', close: '\u{1F7E1}', off: '\u26AB' };
+  var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
+  var score = won ? feedback.length + '/6' : 'X/6';
+  var text = 'Spirle #' + currentPuzzle.dayNum + ' \u{1F3B5} ' + score + '\n\n';
+  for (var i = 0; i < feedback.length; i++) {
+    text += feedback[i].map(function(f) { return emojis[f]; }).join('') + '\n';
+  }
+  navigator.clipboard.writeText(text.trim()).then(function() {
+    var el = document.getElementById('guessCount');
+    var prev = el.textContent;
+    el.textContent = 'Copied!';
+    setTimeout(function() { el.textContent = prev; }, 2000);
+  });
+}
 
 function onWin() {
   revealMoreLaps(12);
+  saveStats(true);
+  saveGameState();
   const btn = document.getElementById('rollBtn');
   btn.textContent = 'Share';
   btn.removeAttribute('disabled');
@@ -1275,12 +1294,210 @@ function onWin() {
 
 function onLose() {
   revealMoreLaps(12);
+  saveStats(false);
+  saveGameState();
   const btn = document.getElementById('rollBtn');
   btn.textContent = 'Share';
   btn.removeAttribute('disabled');
   btn.removeEventListener('click', submitGuess);
   btn.addEventListener('click', shareResult);
   document.getElementById('guessCount').textContent = currentAnswer.outer + ' + ' + currentAnswer.inner;
+}
+
+// ==============================================
+// Statistics
+// ==============================================
+function defaultStats() {
+  return { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: [0,0,0,0,0,0] };
+}
+
+function loadStats() {
+  try {
+    return JSON.parse(localStorage.getItem('spirle-stats')) || defaultStats();
+  } catch(e) { return defaultStats(); }
+}
+
+function saveStats(won) {
+  var stats = loadStats();
+  stats.played++;
+  if (won) {
+    stats.won++;
+    stats.streak++;
+    stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
+    stats.distribution[guesses.length - 1]++;
+  } else {
+    stats.streak = 0;
+  }
+  localStorage.setItem('spirle-stats', JSON.stringify(stats));
+}
+
+function renderStats() {
+  var stats = loadStats();
+  document.getElementById('statPlayed').textContent = stats.played;
+  document.getElementById('statWin').textContent = stats.played > 0 ? Math.round(stats.won / stats.played * 100) + '%' : '0%';
+  document.getElementById('statStreak').textContent = stats.streak;
+  document.getElementById('statMax').textContent = stats.maxStreak;
+
+  var container = document.getElementById('statsDistribution');
+  while (container.firstChild) { container.removeChild(container.firstChild); }
+
+  var maxCount = Math.max.apply(null, stats.distribution.concat([1]));
+  var wonLastGuess = gameOver && feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
+
+  for (var i = 0; i < 6; i++) {
+    var row = document.createElement('div');
+    row.className = 'stats-bar-row';
+
+    var label = document.createElement('span');
+    label.className = 'bar-label';
+    label.textContent = (i + 1);
+    row.appendChild(label);
+
+    var bar = document.createElement('div');
+    bar.className = 'stats-bar';
+
+    var fill = document.createElement('div');
+    fill.className = 'stats-bar-fill';
+    if (wonLastGuess && (guesses.length - 1) === i) {
+      fill.classList.add('current');
+    }
+    var pct = maxCount > 0 ? Math.max((stats.distribution[i] / maxCount) * 100, stats.distribution[i] > 0 ? 4 : 0) : 0;
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+
+    row.appendChild(bar);
+    container.appendChild(row);
+  }
+}
+
+// ==============================================
+// Settings
+// ==============================================
+let hardMode = localStorage.getItem('spirle-hardmode') === 'true';
+
+function buildSettingsContent() {
+  var toggle = document.getElementById('toggleHard');
+  if (hardMode) toggle.classList.add('on');
+
+  toggle.addEventListener('click', function() {
+    if (guesses.length > 0 && !gameOver) {
+      // Prevent toggling mid-game
+      return;
+    }
+    hardMode = !hardMode;
+    localStorage.setItem('spirle-hardmode', hardMode.toString());
+    if (hardMode) {
+      toggle.classList.add('on');
+    } else {
+      toggle.classList.remove('on');
+    }
+  });
+}
+
+// ==============================================
+// Modal Wiring
+// ==============================================
+function wireModals() {
+  var statsModal = document.getElementById('statsModal');
+  var settingsModal = document.getElementById('settingsModal');
+
+  document.getElementById('btnStats').addEventListener('click', function() {
+    renderStats();
+    statsModal.classList.add('open');
+  });
+  document.getElementById('statsClose').addEventListener('click', function() {
+    statsModal.classList.remove('open');
+  });
+  statsModal.addEventListener('click', function(e) {
+    if (e.target === statsModal) statsModal.classList.remove('open');
+  });
+
+  document.getElementById('btnSettings').addEventListener('click', function() {
+    settingsModal.classList.add('open');
+  });
+  document.getElementById('settingsClose').addEventListener('click', function() {
+    settingsModal.classList.remove('open');
+  });
+  settingsModal.addEventListener('click', function(e) {
+    if (e.target === settingsModal) settingsModal.classList.remove('open');
+  });
+}
+
+// ==============================================
+// Game State Persistence
+// ==============================================
+function saveGameState() {
+  localStorage.setItem('spirle-state', JSON.stringify({
+    dateStr: currentPuzzle.dateStr,
+    guesses: guesses,
+    feedback: feedback,
+    gameOver: gameOver,
+  }));
+}
+
+function loadGameState() {
+  try {
+    var state = JSON.parse(localStorage.getItem('spirle-state'));
+    if (!state || state.dateStr !== currentPuzzle.dateStr) return null;
+    return state;
+  } catch(e) { return null; }
+}
+
+function restoreGameState() {
+  var state = loadGameState();
+  if (!state) return;
+
+  for (var g = 0; g < state.guesses.length; g++) {
+    guesses.push(state.guesses[g]);
+    feedback.push(state.feedback[g]);
+
+    var guess = state.guesses[g];
+    var fb = state.feedback[g];
+    var guessValues = [guess.outer, guess.inner, guess.size, guess.reach];
+
+    for (var ci = 0; ci < 4; ci++) {
+      var cell = document.getElementById('cell-' + g + '-' + ci);
+      cell.className = 'guess-cell cell-' + fb[ci];
+      clearCellChildren(cell);
+      var canvas = document.createElement('canvas');
+      cell.appendChild(canvas);
+      drawIcon(canvas, PARAM_TYPES[ci], guessValues[ci], FEEDBACK_COLORS[fb[ci]], 26);
+    }
+  }
+
+  // Set target lap count based on progress
+  if (state.gameOver) {
+    targetMaxLaps = 12;
+  } else {
+    targetMaxLaps = LAPS_SCHEDULE[guesses.length] || 12;
+  }
+
+  // Recompute and redraw target at correct lap count
+  targetPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  drawIdx = targetPoints.length;
+  redrawTargetInstant();
+
+  updatePickerStates();
+
+  gameOver = state.gameOver;
+
+  if (gameOver) {
+    var btn = document.getElementById('rollBtn');
+    btn.textContent = 'Share';
+    btn.removeAttribute('disabled');
+    btn.removeEventListener('click', submitGuess);
+    btn.addEventListener('click', shareResult);
+
+    var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
+    if (won) {
+      document.getElementById('guessCount').textContent = 'In tune! \u{1F3B5}';
+    } else {
+      document.getElementById('guessCount').textContent = currentAnswer.outer + ' + ' + currentAnswer.inner;
+    }
+  } else {
+    resetSelectionForNextGuess();
+    updateGuessCount();
+  }
 }
 
 // ==============================================
@@ -1295,6 +1512,9 @@ buildGuessRows();
 buildPickers();
 updateGuessCount();
 document.getElementById('rollBtn').addEventListener('click', submitGuess);
+buildSettingsContent();
+wireModals();
+restoreGameState();
 </script>
 </body>
 </html>
