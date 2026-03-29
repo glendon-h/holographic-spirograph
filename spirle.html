@@ -55,50 +55,44 @@
   }
 
   @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f5f5f8;
-      --bg2: #ececf0;
-      --bg3: #e2e2ea;
-      --text: #333340;
-      --text2: #1a1a2e;
-      --muted: #8888aa;
-      --muted2: #9999b0;
-      --muted3: #aaaacc;
-      --border: #d0d0dd;
-      --border2: #d8d8e2;
-      --border3: #c8c8d8;
-      --target-bg1: #eeeef4;
-      --target-bg2: #f5f5f8;
-      --cell-intune-bg: #d4f5e0;
-      --cell-intune-border: #5ac880;
-      --cell-close-bg: #f5ecd0;
-      --cell-close-border: #c8a840;
-      --cell-off-bg: #e8e8ee;
-      --cell-off-border: #ccccdd;
-      --cell-empty-bg: #ededf2;
-      --cell-empty-border: #d8d8e2;
-      --cell-pending-bg: #e8e8f0;
-      --cell-pending-border: #b0b0cc;
-      --picker-selected: #6a5ad8;
-      --picker-selected-bg: #eae6f8;
-      --picker-confirmed: #3a9a5a;
-      --picker-confirmed-bg: #e0f5ea;
-      --roll-border: #8878cc;
-      --roll-bg1: #ece8f8;
-      --roll-bg2: #e0daf0;
-      --roll-text: #5a4ab0;
-      --modal-bg: #fafafc;
-      --modal-overlay: rgba(0,0,0,0.3);
-      --divider: #d0d0dd;
-      --toggle-bg: #d0d0dd;
-      --toggle-border: #b8b8cc;
-      --toggle-dot: #9999b0;
-      --toggle-on-bg: #b0e8c8;
-      --toggle-on-border: #5ac880;
-      --toggle-on-dot: #2a8a4a;
-      --active-btn: #5a4ab0;
-      --active-btn-border: #8878cc;
+    :root:not([data-theme]) {
+      --bg: #f5f5f8; --bg2: #ececf0; --bg3: #e2e2ea;
+      --text: #333340; --text2: #1a1a2e;
+      --muted: #8888aa; --muted2: #9999b0; --muted3: #aaaacc;
+      --border: #d0d0dd; --border2: #d8d8e2; --border3: #c8c8d8;
+      --target-bg1: #eeeef4; --target-bg2: #f5f5f8;
+      --cell-intune-bg: #d4f5e0; --cell-intune-border: #5ac880;
+      --cell-close-bg: #f5ecd0; --cell-close-border: #c8a840;
+      --cell-off-bg: #e8e8ee; --cell-off-border: #ccccdd;
+      --cell-empty-bg: #ededf2; --cell-empty-border: #d8d8e2;
+      --cell-pending-bg: #e8e8f0; --cell-pending-border: #b0b0cc;
+      --picker-selected: #6a5ad8; --picker-selected-bg: #eae6f8;
+      --picker-confirmed: #3a9a5a; --picker-confirmed-bg: #e0f5ea;
+      --roll-border: #8878cc; --roll-bg1: #ece8f8; --roll-bg2: #e0daf0; --roll-text: #5a4ab0;
+      --modal-bg: #fafafc; --modal-overlay: rgba(0,0,0,0.3); --divider: #d0d0dd;
+      --toggle-bg: #d0d0dd; --toggle-border: #b8b8cc; --toggle-dot: #9999b0;
+      --toggle-on-bg: #b0e8c8; --toggle-on-border: #5ac880; --toggle-on-dot: #2a8a4a;
+      --active-btn: #5a4ab0; --active-btn-border: #8878cc;
     }
+  }
+  [data-theme="light"] {
+    --bg: #f5f5f8; --bg2: #ececf0; --bg3: #e2e2ea;
+    --text: #333340; --text2: #1a1a2e;
+    --muted: #8888aa; --muted2: #9999b0; --muted3: #aaaacc;
+    --border: #d0d0dd; --border2: #d8d8e2; --border3: #c8c8d8;
+    --target-bg1: #eeeef4; --target-bg2: #f5f5f8;
+    --cell-intune-bg: #d4f5e0; --cell-intune-border: #5ac880;
+    --cell-close-bg: #f5ecd0; --cell-close-border: #c8a840;
+    --cell-off-bg: #e8e8ee; --cell-off-border: #ccccdd;
+    --cell-empty-bg: #ededf2; --cell-empty-border: #d8d8e2;
+    --cell-pending-bg: #e8e8f0; --cell-pending-border: #b0b0cc;
+    --picker-selected: #6a5ad8; --picker-selected-bg: #eae6f8;
+    --picker-confirmed: #3a9a5a; --picker-confirmed-bg: #e0f5ea;
+    --roll-border: #8878cc; --roll-bg1: #ece8f8; --roll-bg2: #e0daf0; --roll-text: #5a4ab0;
+    --modal-bg: #fafafc; --modal-overlay: rgba(0,0,0,0.3); --divider: #d0d0dd;
+    --toggle-bg: #d0d0dd; --toggle-border: #b8b8cc; --toggle-dot: #9999b0;
+    --toggle-on-bg: #b0e8c8; --toggle-on-border: #5ac880; --toggle-on-dot: #2a8a4a;
+    --active-btn: #5a4ab0; --active-btn-border: #8878cc;
   }
 
   html, body {
@@ -156,9 +150,9 @@
     gap: 8px;
   }
   .icon-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg2);
     color: var(--muted);
@@ -166,7 +160,9 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .icon-btn.active {
     color: var(--active-btn);
@@ -492,6 +488,17 @@
     color: var(--muted2);
     margin-top: 2px;
   }
+  /* Help content */
+  .help-content p { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  .help-content ul { font-size: 13px; color: var(--text); line-height: 1.6; margin: 0 0 10px 18px; }
+  .help-content strong { color: var(--text2); }
+  .help-feedback { margin: 14px 0; }
+  .help-fb-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); margin: 6px 0; }
+  .help-dot { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+  .help-dot.intune { background: var(--cell-intune-bg); border: 1px solid var(--cell-intune-border); }
+  .help-dot.close { background: var(--cell-close-bg); border: 1px solid var(--cell-close-border); }
+  .help-dot.off { background: var(--cell-off-bg); border: 1px solid var(--cell-off-border); }
+
   .toggle {
     width: 36px;
     height: 20px;
@@ -534,6 +541,7 @@
       <span class="puzzle-num" id="puzzleNum">#1</span>
     </div>
     <div class="header-right">
+      <div class="icon-btn" id="btnHelp" title="How to play">?</div>
       <div class="icon-btn" id="btnSound" title="Sound">&#9834;</div>
       <div class="icon-btn" id="btnStats" title="Statistics">&#9689;</div>
       <div class="icon-btn" id="btnSettings" title="Settings">&#9881;</div>
@@ -648,22 +656,38 @@
 
     <div class="setting-row">
       <div>
-        <div class="setting-label">High Contrast</div>
-        <div class="setting-desc">Improves color visibility</div>
+        <div class="setting-label">Light Mode</div>
+        <div class="setting-desc">Override system theme</div>
       </div>
-      <div class="toggle" id="toggleContrast"></div>
-    </div>
-
-    <div class="setting-row">
-      <div>
-        <div class="setting-label">Reduce Motion</div>
-        <div class="setting-desc">Skips draw animation on the target</div>
-      </div>
-      <div class="toggle" id="toggleMotion"></div>
+      <div class="toggle" id="toggleLight"></div>
     </div>
   </div>
 </div>
 
+<!-- Instructions modal -->
+<div class="modal-overlay" id="helpModal">
+  <div class="modal">
+    <div class="modal-title">How to Play</div>
+    <div class="modal-close" id="helpClose">&#10005;</div>
+    <div class="help-content">
+      <p>Guess the spirograph in 6 tries.</p>
+      <p>Each spirograph is made from <strong>4 parameters</strong>:</p>
+      <ul>
+        <li><strong>Outer Shape</strong> — the fixed outer curve</li>
+        <li><strong>Inner Shape</strong> — the shape rolling inside</li>
+        <li><strong>Size</strong> — how big the inner shape is</li>
+        <li><strong>Reach</strong> — how far the pen extends</li>
+      </ul>
+      <p>Tap one option from each group, then tap <strong>Roll</strong> to submit your guess.</p>
+      <div class="help-feedback">
+        <div class="help-fb-row"><span class="help-dot intune"></span> <strong>In tune</strong> — correct parameter</div>
+        <div class="help-fb-row"><span class="help-dot close"></span> <strong>Close</strong> — one step away</div>
+        <div class="help-fb-row"><span class="help-dot off"></span> <strong>Off</strong> — not close</div>
+      </div>
+      <p>The spirograph reveals more with each guess. A new puzzle appears every day.</p>
+    </div>
+  </div>
+</div>
 
 <script>
 // ==============================================
@@ -780,8 +804,18 @@ function hashDate(dateStr) {
 function getDailyPuzzle() {
   const epoch = new Date('2026-03-29');
   const now   = new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const dayNum  = Math.floor((now - epoch) / 86400000);
+  // Allow ?day=N override for testing
+  const params = new URLSearchParams(window.location.search);
+  const dayOverride = params.get('day');
+  var dateStr, dayNum;
+  if (dayOverride !== null) {
+    var offsetDate = new Date(epoch.getTime() + parseInt(dayOverride) * 86400000);
+    dateStr = offsetDate.toISOString().slice(0, 10);
+    dayNum = parseInt(dayOverride);
+  } else {
+    dateStr = now.toISOString().slice(0, 10);
+    dayNum = Math.floor((now - epoch) / 86400000);
+  }
   const h = hashDate(dateStr);
   return {
     outerIdx:  h % 4,
@@ -974,7 +1008,9 @@ function startTarget() {
 // ==============================================
 // Icon Renderers
 // ==============================================
-const isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+const lightOverrideStored = localStorage.getItem('spirle-light');
+const isLight = lightOverrideStored === 'true' || (lightOverrideStored === null && window.matchMedia('(prefers-color-scheme: light)').matches);
+if (lightOverrideStored === 'true') document.documentElement.setAttribute('data-theme', 'light');
 
 const FEEDBACK_COLORS = {
   intune:    isLight ? 'rgba(40, 160, 80, 0.8)' : 'rgba(106, 234, 154, 0.75)',
@@ -1473,52 +1509,60 @@ function renderStats() {
 // ==============================================
 let hardMode = localStorage.getItem('spirle-hardmode') === 'true';
 
-function buildSettingsContent() {
-  var toggle = document.getElementById('toggleHard');
-  if (hardMode) toggle.classList.add('on');
+function applyTheme(light) {
+  if (light) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
 
-  toggle.addEventListener('click', function() {
-    if (guesses.length > 0 && !gameOver) {
-      // Prevent toggling mid-game
-      return;
-    }
+function buildSettingsContent() {
+  // See Less toggle
+  var toggleHard = document.getElementById('toggleHard');
+  if (hardMode) toggleHard.classList.add('on');
+  toggleHard.addEventListener('click', function() {
+    if (guesses.length > 0 && !gameOver) return;
     hardMode = !hardMode;
     localStorage.setItem('spirle-hardmode', hardMode.toString());
-    if (hardMode) {
-      toggle.classList.add('on');
-    } else {
-      toggle.classList.remove('on');
-    }
+    toggleHard.classList.toggle('on', hardMode);
+  });
+
+  // Light mode toggle
+  var toggleLight = document.getElementById('toggleLight');
+  var lightOverride = localStorage.getItem('spirle-light');
+  if (lightOverride === 'true') {
+    toggleLight.classList.add('on');
+    applyTheme(true);
+  }
+  toggleLight.addEventListener('click', function() {
+    var isOn = toggleLight.classList.toggle('on');
+    localStorage.setItem('spirle-light', isOn.toString());
+    applyTheme(isOn);
   });
 }
 
 // ==============================================
 // Modal Wiring
 // ==============================================
+function wireModal(btnId, modalId, closeId, onOpen) {
+  var modal = document.getElementById(modalId);
+  document.getElementById(btnId).addEventListener('click', function() {
+    if (onOpen) onOpen();
+    modal.classList.add('open');
+  });
+  document.getElementById(closeId).addEventListener('click', function() {
+    modal.classList.remove('open');
+  });
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+}
+
 function wireModals() {
-  var statsModal = document.getElementById('statsModal');
-  var settingsModal = document.getElementById('settingsModal');
-
-  document.getElementById('btnStats').addEventListener('click', function() {
-    renderStats();
-    statsModal.classList.add('open');
-  });
-  document.getElementById('statsClose').addEventListener('click', function() {
-    statsModal.classList.remove('open');
-  });
-  statsModal.addEventListener('click', function(e) {
-    if (e.target === statsModal) statsModal.classList.remove('open');
-  });
-
-  document.getElementById('btnSettings').addEventListener('click', function() {
-    settingsModal.classList.add('open');
-  });
-  document.getElementById('settingsClose').addEventListener('click', function() {
-    settingsModal.classList.remove('open');
-  });
-  settingsModal.addEventListener('click', function(e) {
-    if (e.target === settingsModal) settingsModal.classList.remove('open');
-  });
+  wireModal('btnStats', 'statsModal', 'statsClose', renderStats);
+  wireModal('btnSettings', 'settingsModal', 'settingsClose');
+  wireModal('btnHelp', 'helpModal', 'helpClose');
 }
 
 // ==============================================
@@ -1663,6 +1707,11 @@ soundBtn.addEventListener('click', function() {
   if (soundEnabled) getAudioCtx(); // init on first enable
 });
 restoreGameState();
+// Show instructions on first visit
+if (!localStorage.getItem('spirle-seen-help')) {
+  document.getElementById('helpModal').classList.add('open');
+  localStorage.setItem('spirle-seen-help', 'true');
+}
 </script>
 </body>
 </html>
