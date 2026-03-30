@@ -877,7 +877,7 @@ const MAX_GUESSES  = 6;
 let guesses          = [];
 let feedback         = [];
 let currentSelection = { outer: null, inner: null, size: null, reach: null };
-let lockedParams     = { outer: false, inner: false, size: false, reach: false };
+// No lock-in — pure visual matching
 let gameOver         = false;
 
 // ==============================================
@@ -933,10 +933,10 @@ function drawPointsOnCanvas(points, colorFn, lineWidth, alpha) {
 // Redraw target only (from stored points) — call on resize
 function redrawTargetOnly() {
   initTargetCanvas();
-  var targetGray = isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.2)';
+  var targetGray = isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)';
   drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function() {
     return targetGray;
-  }, 1.5, 0.7);
+  }, 2, 0.7);
 }
 
 // Build guess answer from current selections
@@ -1002,8 +1002,7 @@ function startGuessAnimation() {
   var answer = buildGuessAnswer();
   if (!answer) return;
 
-  // Clear canvas and redraw target, then animate guess on top
-  redrawTargetOnly();
+  // Just compute and animate the guess — target stays as-is on the canvas
   guessAnimPoints = computeTargetPoints(answer, currentPuzzle, targetMaxLaps);
   guessDrawIdx = 0;
   if (guessAnimId) cancelAnimationFrame(guessAnimId);
@@ -1039,9 +1038,8 @@ function animateTarget() {
     var jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
     if (jump > canvasW * 0.3) { targetDrawIdx = i + 1; continue; }
 
-    var targetGray = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.18)';
-    targetCtx.strokeStyle = targetGray;
-    targetCtx.lineWidth = 1.5;
+    targetCtx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)';
+    targetCtx.lineWidth = 2;
     targetCtx.lineCap = 'round';
     targetCtx.beginPath();
     targetCtx.moveTo(px, py);
@@ -1119,8 +1117,6 @@ function buildPickers() {
 
 function onPickerTap(paramType, valueIdx, optEl) {
   if (gameOver) return;
-  if (lockedParams[paramType]) return;
-
   const pickerGroup = document.getElementById('picker-' + paramType);
   pickerGroup.querySelectorAll('.picker-option').forEach(el => {
     if (!el.classList.contains('confirmed')) {
@@ -1136,7 +1132,7 @@ function onPickerTap(paramType, valueIdx, optEl) {
 
 function checkRollReady() {
   // All unlocked params must be selected
-  const allSelected = PARAM_TYPES.every(p => lockedParams[p] || currentSelection[p] !== null);
+  const allSelected = PARAM_TYPES.every(p => currentSelection[p] !== null);
   const rollBtn = document.getElementById('rollBtn');
   if (allSelected && !gameOver) {
     rollBtn.removeAttribute('disabled');
@@ -1166,10 +1162,10 @@ function getLapsSchedule() {
 // ==============================================
 function submitGuess() {
   if (gameOver) return;
-  const allReady = PARAM_TYPES.every(p => lockedParams[p] || currentSelection[p] !== null);
+  var allReady = PARAM_TYPES.every(function(p) { return currentSelection[p] !== null; });
   if (!allReady) return;
 
-  const guess = {
+  var guess = {
     outer: currentSelection.outer,
     inner: currentSelection.inner,
     size:  currentSelection.size,
@@ -1187,132 +1183,48 @@ function submitGuess() {
     return;
   }
 
-  // Check each parameter individually
-  const answerIndices = {
-    outer: currentPuzzle.outerIdx,
-    inner: currentPuzzle.innerIdx,
-    size:  currentPuzzle.ratioIdx,
-    reach: currentPuzzle.penIdx,
-  };
-
-  var paramResults = {};
-  var newLocks = [];
-
-  PARAM_TYPES.forEach(function(p) {
-    if (lockedParams[p]) {
-      paramResults[p] = 'intune'; // already locked
-    } else if (guess[p] === answerIndices[p]) {
-      paramResults[p] = 'intune';
-      newLocks.push(p);
-    } else if (Math.abs(guess[p] - answerIndices[p]) === 1) {
-      paramResults[p] = 'close';
-    } else {
-      paramResults[p] = 'off';
-    }
-  });
-
-  // Store feedback as array in order
-  var fb = PARAM_TYPES.map(function(p) { return paramResults[p]; });
+  // Check all 4 params
+  var won = guess.outer === currentPuzzle.outerIdx &&
+            guess.inner === currentPuzzle.innerIdx &&
+            guess.size === currentPuzzle.ratioIdx &&
+            guess.reach === currentPuzzle.penIdx;
 
   guesses.push(guess);
-  feedback.push(fb);
+  feedback.push(won ? ['intune','intune','intune','intune'] : ['off','off','off','off']);
 
-  // Draw the guess spirograph animated, then show results
+  // Disable Roll while drawing
+  document.getElementById('rollBtn').setAttribute('disabled', '');
+
+  // Draw the guess spirograph animated
   startGuessAnimation();
 
-  // After guess finishes drawing, show lock results
-  var drawTime = guessAnimPoints.length / (3 * currentPuzzle.config.speed) * 16; // rough ms
+  // After drawing finishes, show result
+  var drawTime = guessAnimPoints.length / (3 * currentPuzzle.config.speed) * 16;
   setTimeout(function() {
-    animateRollResult(paramResults, newLocks, fb);
-  }, Math.min(drawTime, 3000));
-}
-
-function animateRollResult(paramResults, newLocks, fb) {
-  // Show result cluster in strip
-  var sorted = fb.slice().sort(function(a, b) {
-    var order = { intune: 0, close: 1, off: 2 };
-    return order[a] - order[b];
-  });
-
-  var strip = document.getElementById('resultStrip');
-  var cluster = document.createElement('div');
-  cluster.className = 'result-cluster';
-  var lines = [];
-  for (var i = 0; i < 4; i++) {
+    // Add result to strip — single line: green = match, gray = no match
+    var strip = document.getElementById('resultStrip');
     var line = document.createElement('span');
-    line.className = 'r-line';
-    cluster.appendChild(line);
-    lines.push(line);
-  }
-  strip.appendChild(cluster);
+    line.className = 'r-line ' + (won ? 'intune' : 'off');
+    strip.appendChild(line);
 
-  // Animate lines
-  for (var i = 0; i < 4; i++) {
-    (function(idx) {
-      setTimeout(function() {
-        lines[idx].classList.add(sorted[idx]);
-      }, idx * 150);
-    })(i);
-  }
+    if (won) {
+      gameOver = true;
+      onWin();
+      return;
+    }
 
-  // After strip animation, lock correct params with chimes
-  var lockDelay = 4 * 150 + 200;
-  var chimeIdx = 0;
+    if (guesses.length >= MAX_GUESSES) {
+      gameOver = true;
+      onLose();
+      return;
+    }
 
-  if (newLocks.length > 0) {
-    newLocks.forEach(function(paramType, li) {
-      setTimeout(function() {
-        lockedParams[paramType] = true;
-        // Visually lock the correct option
-        var picker = document.getElementById('picker-' + paramType);
-        picker.querySelectorAll('.picker-option').forEach(function(opt) {
-          opt.classList.remove('selected');
-          if (parseInt(opt.dataset.idx) === currentSelection[paramType]) {
-            opt.classList.add('confirmed');
-            // Redraw icon in green
-            var cv = opt.querySelector('canvas');
-            drawIcon(cv, paramType, parseInt(opt.dataset.idx), FEEDBACK_COLORS.confirmed, 28);
-          }
-        });
-        // Mark group as locked
-        document.getElementById('group-' + paramType).classList.add('locked');
-
-        playLockChime(li);
-      }, lockDelay + li * 300);
-    });
-  } else {
-    // No new locks — play wrong sound
-    setTimeout(function() { playWrongSound(); }, lockDelay);
-  }
-
-  // After all animations, check win/lose
-  var totalDelay = lockDelay + newLocks.length * 300 + 200;
-  setTimeout(function() {
-    onRollComplete(fb);
-  }, totalDelay);
-}
-
-function onRollComplete(fb) {
-  var allLocked = PARAM_TYPES.every(function(p) { return lockedParams[p]; });
-
-  if (allLocked) {
-    gameOver = true;
-    onWin();
-    return;
-  }
-
-  if (guesses.length >= MAX_GUESSES) {
-    gameOver = true;
-    onLose();
-    return;
-  }
-
-  // Reveal more of the target
-  revealMoreLaps(getLapsSchedule()[guesses.length] || 10);
-
-  saveGameState();
-  updateGuessCount();
-  checkRollReady();
+    // Reveal more of the target
+    revealMoreLaps(getLapsSchedule()[guesses.length] || 10);
+    saveGameState();
+    updateGuessCount();
+    document.getElementById('rollBtn').removeAttribute('disabled');
+  }, Math.min(drawTime, 3000));
 }
 
 // ==============================================
@@ -1331,54 +1243,19 @@ function onWin() {
 }
 
 function onLose() {
-  // Lock all to reveal answer
-  var answerIndices = {
-    outer: currentPuzzle.outerIdx,
-    inner: currentPuzzle.innerIdx,
-    size:  currentPuzzle.ratioIdx,
-    reach: currentPuzzle.penIdx,
-  };
-
-  PARAM_TYPES.forEach(function(p) {
-    lockedParams[p] = true;
-    currentSelection[p] = answerIndices[p];
-    var picker = document.getElementById('picker-' + p);
-    picker.querySelectorAll('.picker-option').forEach(function(opt) {
-      opt.classList.remove('selected', 'confirmed');
-      if (parseInt(opt.dataset.idx) === answerIndices[p]) {
-        opt.classList.add('confirmed');
-        var cv = opt.querySelector('canvas');
-        drawIcon(cv, p, answerIndices[p], FEEDBACK_COLORS.confirmed, 28);
-      }
-    });
-    document.getElementById('group-' + p).classList.add('locked');
-  });
-
   revealMoreLaps(12);
   saveGameState();
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Next time!';
-
-  setTimeout(function() { redrawTargetOnly(); }, 300);
   showEndModal(false);
 }
 
 function shareResult() {
-  var emojis = { intune: '\u{1F7E2}', close: '\u{1F7E1}', off: '\u26AB' };
-  var allLocked = PARAM_TYPES.every(function(p) { return lockedParams[p]; }) && guesses.length <= MAX_GUESSES;
   var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
-  // Check if won by all locks
-  if (!won) {
-    won = allLocked && guesses.length < MAX_GUESSES;
-  }
   var score = won ? feedback.length + '/6' : 'X/6';
   var text = 'Loople Lab #' + currentPuzzle.dayNum + ' ' + score + '\n\n';
   for (var i = 0; i < feedback.length; i++) {
-    var sorted = feedback[i].slice().sort(function(a, b) {
-      var order = { intune: 0, close: 1, off: 2 };
-      return order[a] - order[b];
-    });
-    text += sorted.map(function(f) { return emojis[f]; }).join('') + '\n';
+    text += (feedback[i].every(function(f) { return f === 'intune'; }) ? '\u{1F7E2}' : '\u26AB') + ' ';
   }
   navigator.clipboard.writeText(text.trim()).then(function() {
     var el = document.getElementById('guessStatus');
@@ -1451,7 +1328,7 @@ function saveGameState() {
     guesses: guesses,
     feedback: feedback,
     gameOver: gameOver,
-    lockedParams: lockedParams,
+    // no lock-in
     currentSelection: currentSelection,
   }));
 }
@@ -1470,51 +1347,29 @@ function restoreGameState() {
 
   guesses = state.guesses || [];
   feedback = state.feedback || [];
-  lockedParams = state.lockedParams || { outer: false, inner: false, size: false, reach: false };
   currentSelection = state.currentSelection || { outer: null, inner: null, size: null, reach: null };
   gameOver = state.gameOver;
 
-  // Restore result strip
+  // Restore result strip — one line per guess (green = win, gray = miss)
+  var strip = document.getElementById('resultStrip');
   for (var g = 0; g < feedback.length; g++) {
-    var sorted = feedback[g].slice().sort(function(a, b) {
-      var order = { intune: 0, close: 1, off: 2 };
-      return order[a] - order[b];
-    });
-    var strip = document.getElementById('resultStrip');
-    var cluster = document.createElement('div');
-    cluster.className = 'result-cluster';
-    for (var d = 0; d < 4; d++) {
-      var line = document.createElement('span');
-      line.className = 'r-line ' + sorted[d];
-      cluster.appendChild(line);
-    }
-    strip.appendChild(cluster);
+    var won = feedback[g].every(function(f) { return f === 'intune'; });
+    var line = document.createElement('span');
+    line.className = 'r-line ' + (won ? 'intune' : 'off');
+    strip.appendChild(line);
   }
 
-  // Restore picker states
+  // Restore picker selections
   PARAM_TYPES.forEach(function(paramType) {
-    var picker = document.getElementById('picker-' + paramType);
-    picker.querySelectorAll('.picker-option').forEach(function(opt) {
-      var idx = parseInt(opt.dataset.idx);
-      if (lockedParams[paramType] && idx === currentSelection[paramType]) {
-        opt.classList.add('confirmed');
-        var cv = opt.querySelector('canvas');
-        drawIcon(cv, paramType, idx, FEEDBACK_COLORS.confirmed, 28);
-        document.getElementById('group-' + paramType).classList.add('locked');
-      } else if (!lockedParams[paramType] && idx === currentSelection[paramType]) {
-        opt.classList.add('selected');
-      }
-    });
+    if (currentSelection[paramType] !== null) {
+      var picker = document.getElementById('picker-' + paramType);
+      var opt = picker.querySelectorAll('.picker-option')[currentSelection[paramType]];
+      if (opt) opt.classList.add('selected');
+    }
   });
 
   // Set target lap count
-  if (gameOver) {
-    targetMaxLaps = 12;
-  } else {
-    targetMaxLaps = getLapsSchedule()[guesses.length] || 10;
-  }
-
-  // Redraw target at correct lap count (instant)
+  targetMaxLaps = gameOver ? 12 : (getLapsSchedule()[guesses.length] || 10);
   targetAnimPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
   targetDrawIdx = targetAnimPoints.length;
   redrawTargetOnly();
@@ -1522,9 +1377,6 @@ function restoreGameState() {
   if (gameOver) {
     document.getElementById('rollBtn').setAttribute('disabled', '');
     var won = feedback.length > 0 && feedback[feedback.length - 1].every(function(f) { return f === 'intune'; });
-    if (!won) {
-      won = PARAM_TYPES.every(function(p) { return lockedParams[p]; });
-    }
     document.getElementById('guessStatus').textContent = won ? 'Perfect match!' : 'Next time!';
     showEndModal(won);
   } else {
