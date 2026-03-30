@@ -1090,12 +1090,18 @@ function buildGuessAnswer() {
 
 // Animate the guess spirograph drawing (called on Roll)
 var guessAnimId = null;
+var canReplay = false;
+var lastGuessAnswer = null;
+var guessAnimCallback = null;
 var guessAnimPoints = [];
 var guessDrawIdx = 0;
 
 function animateGuess() {
   guessAnimId = null;
-  if (!guessAnimPoints.length || guessDrawIdx >= guessAnimPoints.length) return;
+  if (!guessAnimPoints.length || guessDrawIdx >= guessAnimPoints.length) {
+    if (guessAnimCallback) { var cb = guessAnimCallback; guessAnimCallback = null; cb(); }
+    return;
+  }
 
   var rect = targetCanvas.parentElement.getBoundingClientRect();
   var cx = rect.width / 2, cy = rect.height / 2;
@@ -1104,8 +1110,8 @@ function animateGuess() {
   var canvasW = rect.width;
   var hueRange = currentPuzzle.config.hue;
 
-  var batchSize = Math.max(1, Math.round(3 * currentPuzzle.config.speed));
-  var end = Math.min(guessDrawIdx + batchSize, guessAnimPoints.length);
+  // Slow draw — 1 point per frame so players can see what their choices produce
+  var end = Math.min(guessDrawIdx + 1, guessAnimPoints.length);
 
   for (var i = guessDrawIdx; i < end; i++) {
     if (i === 0) { guessDrawIdx = i + 1; continue; }
@@ -1137,6 +1143,7 @@ function animateGuess() {
 function startGuessAnimation() {
   var answer = buildGuessAnswer();
   if (!answer) return;
+  lastGuessAnswer = answer;
 
   // Clear canvas and redraw target to wipe previous guess, then animate new guess
   redrawTargetOnly();
@@ -1264,6 +1271,12 @@ function onPickerTap(paramType, valueIdx, optEl) {
   optEl.classList.add('selected');
   currentSelection[paramType] = valueIdx;
 
+  // Switch back from Replay to Draw when picks change
+  if (canReplay) {
+    canReplay = false;
+    document.getElementById('rollBtn').textContent = 'Draw';
+  }
+
   checkRollReady();
 }
 
@@ -1297,8 +1310,24 @@ function getLapsSchedule() {
 // ==============================================
 // Roll (Guess Submission)
 // ==============================================
+function replayLastGuess() {
+  if (!lastGuessAnswer) return;
+  redrawTargetOnly();
+  guessAnimPoints = computeTargetPoints(lastGuessAnswer, currentPuzzle, targetMaxLaps);
+  guessDrawIdx = 0;
+  if (guessAnimId) cancelAnimationFrame(guessAnimId);
+  animateGuess();
+}
+
 function submitGuess() {
   if (gameOver) return;
+
+  // If in replay mode, replay the last guess drawing
+  if (canReplay) {
+    replayLastGuess();
+    return;
+  }
+
   var allReady = PARAM_TYPES.every(function(p) { return currentSelection[p] !== null; });
   if (!allReady) return;
 
@@ -1333,15 +1362,11 @@ function submitGuess() {
   guesses.push(guess);
   feedback.push(fb);
 
-  // Disable Roll while drawing
+  // Disable Draw while drawing
   document.getElementById('rollBtn').setAttribute('disabled', '');
 
-  // Draw the guess spirograph animated
-  startGuessAnimation();
-
-  // After drawing finishes, show Mastermind result + sound
-  var drawTime = guessAnimPoints.length / (3 * currentPuzzle.config.speed) * 16;
-  setTimeout(function() {
+  // Draw the guess spirograph animated — show results when done via callback
+  guessAnimCallback = function() {
     // Sort feedback for Mastermind display (don't reveal which param)
     var sorted = fb.slice().sort(function(a, b) {
       var order = { intune: 0, close: 1, off: 2 };
@@ -1386,10 +1411,14 @@ function submitGuess() {
       }
       saveGameState();
       updateGuessCount();
-      document.getElementById('rollBtn').removeAttribute('disabled');
+      var btn = document.getElementById('rollBtn');
+      btn.textContent = 'Replay';
+      btn.removeAttribute('disabled');
+      canReplay = true;
     }, 4 * 150 + 300);
 
-  }, Math.min(drawTime, 3000));
+  };
+  startGuessAnimation();
 }
 
 // ==============================================
