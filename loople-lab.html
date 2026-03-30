@@ -488,9 +488,9 @@ const FOURIER_TERMS = 12;
 const FOURIER_SHAPES = {
   circle:    (t) => ({ x: Math.cos(t), y: Math.sin(t) }),
   ellipse:   (t) => ({ x: Math.cos(t), y: 0.65*Math.sin(t) }),
-  rtriangle: (t) => { const r = superformula(t, 3, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
-  rsquare:   (t) => { const r = superformula(t, 4, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
-  rpentagon: (t) => { const r = superformula(t, 5, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  triangle: (t) => { const r = superformula(t, 3, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  square:   (t) => { const r = superformula(t, 4, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
+  pentagon: (t) => { const r = superformula(t, 5, 1.5, 1.5, 1.5); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
   heart:     (t) => ({ x: 16*Math.pow(Math.sin(t),3)/17, y: -(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/17 }),
   trefoil:   (t) => { const r = 1 + 0.5*Math.cos(3*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
   starfish:  (t) => { const r = 1 + 0.4*Math.cos(5*t); return { x: r*Math.cos(t), y: r*Math.sin(t) }; },
@@ -570,27 +570,27 @@ function arc2theta(table, target) {
 // ==============================================
 const DAILY_CONFIG = [
   { // Monday
-    outer: ['circle', 'ellipse', 'rsquare', 'rpentagon'],
-    inner: ['circle', 'ellipse', 'rtriangle', 'rsquare'],
+    outer: ['circle', 'ellipse', 'square', 'pentagon'],
+    inner: ['circle', 'ellipse', 'triangle', 'square'],
     hue: [200, 260], speed: 1.0, initLaps: 1.5,
   },
   { // Tuesday
-    outer: ['circle', 'ellipse', 'rsquare', 'heart'],
-    inner: ['circle', 'rsquare', 'rpentagon', 'heart'],
+    outer: ['circle', 'ellipse', 'square', 'heart'],
+    inner: ['circle', 'square', 'pentagon', 'heart'],
     hue: [280, 340], speed: 1.0, initLaps: 1.2,
   },
   { // Wednesday
-    outer: ['ellipse', 'rsquare', 'rpentagon', 'heart'],
-    inner: ['rpentagon', 'heart', 'trefoil', 'starfish'],
+    outer: ['ellipse', 'square', 'pentagon', 'heart'],
+    inner: ['pentagon', 'heart', 'trefoil', 'starfish'],
     hue: [20, 80], speed: 0.8, initLaps: 1.0,
   },
   { // Thursday
-    outer: ['rsquare', 'rpentagon', 'heart', 'blob'],
+    outer: ['square', 'pentagon', 'heart', 'blob'],
     inner: ['trefoil', 'starfish', 'blob', 'star'],
     hue: [140, 200], speed: 0.8, initLaps: 1.0,
   },
   { // Friday
-    outer: ['rpentagon', 'heart', 'blob', 'starfish'],
+    outer: ['pentagon', 'heart', 'blob', 'starfish'],
     inner: ['starfish', 'star', 'flower', 'butterfly'],
     hue: [320, 380], speed: 0.6, initLaps: 0.8,
   },
@@ -600,7 +600,7 @@ const DAILY_CONFIG = [
     hue: [80, 140], speed: 0.6, initLaps: 0.8,
   },
   { // Sunday
-    outer: ['blob', 'starfish', 'trefoil', 'rtriangle'],
+    outer: ['blob', 'starfish', 'trefoil', 'triangle'],
     inner: ['butterfly', 'figure8', 'leaf', 'star'],
     hue: [0, 60], speed: 0.4, initLaps: 0.6,
   },
@@ -1010,7 +1010,8 @@ function startGuessAnimation() {
   var answer = buildGuessAnswer();
   if (!answer) return;
 
-  // Just compute and animate the guess — target stays as-is on the canvas
+  // Clear canvas and redraw target to wipe previous guess, then animate new guess
+  redrawTargetOnly();
   guessAnimPoints = computeTargetPoints(answer, currentPuzzle, targetMaxLaps);
   guessDrawIdx = 0;
   if (guessAnimId) cancelAnimationFrame(guessAnimId);
@@ -1266,24 +1267,38 @@ function submitGuess() {
 // ==============================================
 // Win / Lose
 // ==============================================
+function drawAnswerInColor() {
+  // Clear and draw the full answer spirograph in vibrant daily color
+  initTargetCanvas();
+  var fullPoints = computeTargetPoints(currentAnswer, currentPuzzle, 10);
+  var hueRange = currentPuzzle.config.hue;
+  drawPointsOnCanvas(fullPoints, function(i, total) {
+    var progress = i / total;
+    var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
+    var lightness = TRACE_LIGHTNESS + 10 * Math.sin(i * 0.01);
+    return 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.85)';
+  }, 2, 0.7);
+}
+
 function onWin() {
   playWinSound();
-  revealMoreLaps(12);
   saveGameState();
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Perfect match!';
-
-  // Redraw canvas — both spirographs now identical, they overlap
-  setTimeout(function() { redrawTargetOnly(); }, 300);
-  showEndModal(true);
+  setTimeout(function() {
+    drawAnswerInColor();
+    showEndModal(true);
+  }, 500);
 }
 
 function onLose() {
-  revealMoreLaps(12);
   saveGameState();
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Next time!';
-  showEndModal(false);
+  setTimeout(function() {
+    drawAnswerInColor();
+    showEndModal(false);
+  }, 500);
 }
 
 function shareResult() {
