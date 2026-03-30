@@ -6,7 +6,8 @@
       "Bash(bash \"C:/Users/GlendonHass/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/GlendonHass/workspace/claude/holographic-spirograph\")",
       "Skill(commit-commands:commit)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(curl:*)"
     ]
   }
 }
