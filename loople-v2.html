@@ -1518,6 +1518,7 @@ function replayLastGuess() {
   redrawTargetOnly();
   guessAnimPoints = computeTargetPoints(lastGuessAnswer, currentPuzzle, targetMaxLaps);
   guessDrawIdx = 0;
+  guessAnimCallback = null; // no callback on replay
   if (guessAnimId) cancelAnimationFrame(guessAnimId);
   animateGuess();
 }
@@ -1621,6 +1622,22 @@ function submitGuess() {
     }, 4 * 150 + 300);
 
   };
+
+  // Safety timeout — if animation takes too long or stalls, fire callback anyway
+  var safetyTimeout = setTimeout(function() {
+    if (guessAnimCallback) {
+      var cb = guessAnimCallback;
+      guessAnimCallback = null;
+      cb();
+    }
+  }, 15000);
+
+  var origCallback = guessAnimCallback;
+  guessAnimCallback = function() {
+    clearTimeout(safetyTimeout);
+    origCallback();
+  };
+
   startGuessAnimation();
 }
 
