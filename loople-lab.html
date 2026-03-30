@@ -400,6 +400,43 @@
     cursor: pointer;
   }
 
+  /* Settings */
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border2); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 12px; color: var(--text); }
+  .setting-desc { font-size: 9px; color: var(--muted2); margin-top: 2px; }
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--toggle-bg); border: 1px solid var(--toggle-border); position: relative; cursor: pointer; flex-shrink: 0; }
+  .toggle.on { background: var(--toggle-on-bg); border-color: var(--toggle-on-border); }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--toggle-dot); transition: transform 0.15s ease; }
+  .toggle.on::after { transform: translateX(16px); background: var(--toggle-on-dot); }
+
+  /* Help */
+  .help-content p { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  .help-content ul { font-size: 13px; color: var(--text); line-height: 1.6; margin: 0 0 10px 18px; }
+  .help-content strong { color: var(--text2); }
+  .beta-note { background: var(--picker-selected-bg); border: 1px solid var(--picker-selected); border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5; margin-bottom: 14px; }
+
+  /* Feedback form */
+  .feedback-content { font-size: 13px; }
+  .fb-intro { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .fb-label { display: block; color: var(--text2); font-size: 12px; font-weight: 600; margin: 12px 0 6px; }
+  .fb-stars { display: flex; gap: 4px; }
+  .fb-star { font-size: 24px; color: var(--border); cursor: pointer; transition: color 0.1s; }
+  .fb-star.active { color: #e8b830; }
+  .fb-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fb-opt { padding: 6px 12px; border-radius: 16px; font-size: 11px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; font-family: inherit; }
+  .fb-opt.active { border-color: var(--picker-selected); background: var(--picker-selected-bg); color: var(--text2); }
+  .fb-text { width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: inherit; resize: vertical; }
+  .fb-text::placeholder { color: var(--muted); }
+  .fb-submit { width: 100%; margin-top: 14px; padding: 10px; border-radius: 20px; border: 1px solid var(--picker-selected); background: var(--picker-selected-bg); color: var(--picker-selected); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .fb-thanks { display: none; text-align: center; color: var(--picker-confirmed); font-size: 13px; font-weight: 600; margin-top: 14px; }
+
+  /* Stat styles */
+  .stat-grid { display: flex; justify-content: space-around; text-align: center; margin-bottom: 16px; }
+  .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--text2); }
+  .stat-label { font-size: 9px; color: var(--muted2); text-transform: uppercase; }
+
   /* Test bar */
   .test-bar {
     display: none;
@@ -429,7 +466,11 @@
       <span class="puzzle-num" id="puzzleNum">#1</span>
     </div>
     <div class="header-right">
+      <div class="icon-btn" id="btnHelp" title="How to play">?</div>
+      <div class="icon-btn" id="btnFeedback" title="Feedback">&#9993;</div>
       <div class="icon-btn" id="btnSound" title="Sound">&#9834;</div>
+      <div class="icon-btn" id="btnStats" title="Statistics">&#9689;</div>
+      <div class="icon-btn" id="btnSettings" title="Settings">&#9881;</div>
     </div>
   </div>
 
@@ -459,6 +500,93 @@
       <div class="end-answer" id="endAnswer"></div>
       <button class="end-share" id="endShare">Share</button>
       <button class="end-close" id="endCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats modal -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal">
+    <div class="modal-title">Statistics</div>
+    <div class="modal-close" id="statsClose">&#10005;</div>
+    <div id="statsContent"></div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">Settings</div>
+    <div class="modal-close" id="settingsClose">&#10005;</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Light Mode</div>
+        <div class="setting-desc">Override system theme</div>
+      </div>
+      <div class="toggle" id="toggleLight"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Help modal -->
+<div class="modal-overlay" id="helpModal">
+  <div class="modal">
+    <div class="modal-title">How to Play</div>
+    <div class="modal-close" id="helpClose">&#10005;</div>
+    <div class="help-content">
+      <p class="beta-note">Thanks for testing Loople Lab! Your feedback shapes the game. Use the &#9993; button to share your thoughts.</p>
+      <p>Match the spirograph in 6 tries.</p>
+      <p>You see a gray ghost pattern. Build your own spirograph by picking:</p>
+      <ul>
+        <li><strong>Outer Shape</strong> — the frame</li>
+        <li><strong>Inner Shape</strong> — the rolling piece</li>
+        <li><strong>Size</strong> — how big the rolling piece is</li>
+        <li><strong>Reach</strong> — how far the pen stretches</li>
+      </ul>
+      <p>Tap <strong>Roll</strong> to draw your spirograph in color over the ghost. Watch them overlap or diverge.</p>
+      <p>After each roll you see 4 sorted dots — how many you got right, close, or off — but not which ones.</p>
+      <p>6 tries. Difficulty increases through the week.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback modal -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-title">Feedback</div>
+    <div class="modal-close" id="feedbackClose">&#10005;</div>
+    <div class="feedback-content">
+      <p class="fb-intro">Help us make Loople better!</p>
+      <label class="fb-label">How was the overall experience?</label>
+      <div class="fb-stars" id="fbStars">
+        <span class="fb-star" data-val="1">&#9733;</span>
+        <span class="fb-star" data-val="2">&#9733;</span>
+        <span class="fb-star" data-val="3">&#9733;</span>
+        <span class="fb-star" data-val="4">&#9733;</span>
+        <span class="fb-star" data-val="5">&#9733;</span>
+      </div>
+      <label class="fb-label">Was it easy to understand?</label>
+      <div class="fb-options" id="fbEasy">
+        <button class="fb-opt" data-val="yes">Yes</button>
+        <button class="fb-opt" data-val="mostly">Mostly</button>
+        <button class="fb-opt" data-val="no">No</button>
+      </div>
+      <label class="fb-label">How did the difficulty feel?</label>
+      <div class="fb-options" id="fbDifficulty">
+        <button class="fb-opt" data-val="easy">Too easy</button>
+        <button class="fb-opt" data-val="right">Just right</button>
+        <button class="fb-opt" data-val="hard">Too hard</button>
+      </div>
+      <label class="fb-label">Would you play again?</label>
+      <div class="fb-options" id="fbReturn">
+        <button class="fb-opt" data-val="yes">Definitely</button>
+        <button class="fb-opt" data-val="maybe">Maybe</button>
+        <button class="fb-opt" data-val="no">Probably not</button>
+      </div>
+      <label class="fb-label">Anything else?</label>
+      <textarea class="fb-text" id="fbText" placeholder="What would you change?" rows="3"></textarea>
+      <button class="fb-submit" id="fbSubmit">Send Feedback</button>
+      <div class="fb-thanks" id="fbThanks">Thanks for your feedback!</div>
     </div>
   </div>
 </div>
@@ -1309,32 +1437,49 @@ function animateReveal() {
   revealAnimId = requestAnimationFrame(animateReveal);
 }
 
-function drawAnswerAnimated(onDone) {
+function continueDrawingAnswer() {
+  // Continue drawing from where guess animation left off, extending to full 10 laps
+  // Don't clear canvas — keep existing guess trace
+  revealPoints = computeTargetPoints(currentAnswer, currentPuzzle, 10);
+  // Start from where the guess stopped (same number of points at current lap count)
+  var currentPoints = computeTargetPoints(currentAnswer, currentPuzzle, targetMaxLaps);
+  revealDrawIdx = currentPoints.length;
+  revealCallback = null; // just keep drawing in the background
+  if (revealAnimId) cancelAnimationFrame(revealAnimId);
+  animateReveal();
+}
+
+function drawAnswerFresh() {
+  // Clear and draw full answer from scratch (for lose)
   initTargetCanvas();
   revealPoints = computeTargetPoints(currentAnswer, currentPuzzle, 10);
   revealDrawIdx = 0;
-  revealCallback = onDone;
+  revealCallback = null;
   if (revealAnimId) cancelAnimationFrame(revealAnimId);
   animateReveal();
 }
 
 function onWin() {
   playWinSound();
+  saveStats(true);
   saveGameState();
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Perfect match!';
-  setTimeout(function() {
-    drawAnswerAnimated(function() { showEndModal(true); });
-  }, 500);
+  // Keep drawing from where guess ended — extend to full reveal
+  continueDrawingAnswer();
+  // Show modal quickly while spirograph keeps drawing behind it
+  setTimeout(function() { showEndModal(true); }, 800);
 }
 
 function onLose() {
+  saveStats(false);
   saveGameState();
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Next time!';
-  setTimeout(function() {
-    drawAnswerAnimated(function() { showEndModal(false); });
-  }, 500);
+  // Draw the answer fresh in color
+  drawAnswerFresh();
+  // Show modal quickly
+  setTimeout(function() { showEndModal(false); }, 800);
 }
 
 function shareResult() {
@@ -1507,6 +1652,84 @@ function wireTestBar() {
 }
 
 // ==============================================
+// Modal wiring
+function wireModal(btnId, modalId, closeId, onOpen) {
+  var modal = document.getElementById(modalId);
+  var btn = document.getElementById(btnId);
+  if (!btn || !modal) return;
+  btn.addEventListener('click', function() { if (onOpen) onOpen(); modal.classList.add('open'); });
+  var closeBtn = document.getElementById(closeId);
+  if (closeBtn) closeBtn.addEventListener('click', function() { modal.classList.remove('open'); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('open'); });
+}
+
+// Stats
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem('loople-lab-stats')) || { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: [0,0,0,0,0,0] }; }
+  catch(e) { return { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: [0,0,0,0,0,0] }; }
+}
+function saveStats(won) {
+  var s = loadStats(); s.played++;
+  if (won) { s.won++; s.streak++; s.maxStreak = Math.max(s.maxStreak, s.streak); s.distribution[guesses.length-1]++; }
+  else { s.streak = 0; }
+  localStorage.setItem('loople-lab-stats', JSON.stringify(s));
+}
+function renderStats() {
+  var s = loadStats();
+  var el = document.getElementById('statsContent');
+  while (el.firstChild) el.removeChild(el.firstChild);
+  var grid = document.createElement('div'); grid.className = 'stat-grid';
+  [['played', s.played], ['win %', s.played ? Math.round(s.won/s.played*100) : 0], ['streak', s.streak], ['best', s.maxStreak]].forEach(function(item) {
+    var d = document.createElement('div'); d.className = 'stat-item';
+    var v = document.createElement('span'); v.className = 'stat-value'; v.textContent = item[1];
+    var l = document.createElement('span'); l.className = 'stat-label'; l.textContent = item[0];
+    d.appendChild(v); d.appendChild(l); grid.appendChild(d);
+  });
+  el.appendChild(grid);
+}
+
+// Feedback
+var FEEDBACK_WEBHOOK = '';
+var fbData = { stars: 0, easy: '', difficulty: '', returnPlay: '', text: '' };
+function wireFeedback() {
+  document.querySelectorAll('.fb-star').forEach(function(star) {
+    star.addEventListener('click', function() {
+      fbData.stars = parseInt(star.dataset.val);
+      document.querySelectorAll('.fb-star').forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.val) <= fbData.stars); });
+    });
+  });
+  [['fbEasy','easy'],['fbDifficulty','difficulty'],['fbReturn','returnPlay']].forEach(function(g) {
+    var el = document.getElementById(g[0]);
+    if (!el) return;
+    el.querySelectorAll('.fb-opt').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        fbData[g[1]] = btn.dataset.val;
+        btn.parentElement.querySelectorAll('.fb-opt').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+  });
+  document.getElementById('fbSubmit').addEventListener('click', function() {
+    fbData.text = document.getElementById('fbText').value;
+    fbData.puzzle = currentPuzzle.dayNum;
+    fbData.timestamp = new Date().toISOString();
+    var allFb = []; try { allFb = JSON.parse(localStorage.getItem('loople-lab-feedback') || '[]'); } catch(e) {}
+    allFb.push(fbData); localStorage.setItem('loople-lab-feedback', JSON.stringify(allFb));
+    if (FEEDBACK_WEBHOOK) { fetch(FEEDBACK_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(fbData), mode: 'no-cors' }).finally(function() {}); }
+    document.getElementById('fbSubmit').style.display = 'none';
+    document.getElementById('fbThanks').style.display = 'block';
+  });
+}
+
+// Light mode toggle
+function applyTheme(light) { if (light) document.documentElement.setAttribute('data-theme','light'); else document.documentElement.removeAttribute('data-theme'); }
+function wireSettings() {
+  var t = document.getElementById('toggleLight');
+  var stored = localStorage.getItem('loople-lab-light');
+  if (stored === 'true') { t.classList.add('on'); applyTheme(true); }
+  t.addEventListener('click', function() { var on = t.classList.toggle('on'); localStorage.setItem('loople-lab-light', on); applyTheme(on); });
+}
+
 // Initialization
 // ==============================================
 const currentPuzzle = getDailyPuzzle();
@@ -1520,6 +1743,18 @@ buildPickers();
 updateGuessCount();
 document.getElementById('rollBtn').addEventListener('click', submitGuess);
 wireTestBar();
+wireModal('btnStats', 'statsModal', 'statsClose', renderStats);
+wireModal('btnSettings', 'settingsModal', 'settingsClose');
+wireModal('btnHelp', 'helpModal', 'helpClose');
+wireModal('btnFeedback', 'feedbackModal', 'feedbackClose');
+wireFeedback();
+wireSettings();
+
+// Show help on first visit
+if (!localStorage.getItem('loople-lab-seen-help')) {
+  document.getElementById('helpModal').classList.add('open');
+  localStorage.setItem('loople-lab-seen-help', 'true');
+}
 
 // Sound toggle
 soundEnabled = localStorage.getItem('loople-lab-sound') !== 'false';
