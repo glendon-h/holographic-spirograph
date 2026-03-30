@@ -1319,9 +1319,26 @@ function stopPreview() {
   if (previewAnimId) { cancelAnimationFrame(previewAnimId); previewAnimId = null; }
 }
 
-// Wire tap-to-peek
+// Wire tap-to-peek (first 10 puzzles only)
+var PEEK_LIMIT = 10;
+
+function canPeek() {
+  var stats = loadStats();
+  return stats.played < PEEK_LIMIT;
+}
+
+function updatePeekUI() {
+  var hint = document.getElementById('flipHint');
+  if (canPeek()) {
+    hint.textContent = 'hold to peek';
+    hint.style.display = '';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
 document.getElementById('targetWrap').addEventListener('touchstart', function(e) {
-  if (gameOver) return;
+  if (gameOver || !canPeek()) return;
   e.preventDefault();
   startPreview();
 });
@@ -1329,7 +1346,7 @@ document.getElementById('targetWrap').addEventListener('touchend', function() {
   stopPreview();
 });
 document.getElementById('targetWrap').addEventListener('mousedown', function() {
-  if (gameOver) return;
+  if (gameOver || !canPeek()) return;
   startPreview();
 });
 document.getElementById('targetWrap').addEventListener('mouseup', function() {
@@ -1964,6 +1981,7 @@ wireModal('btnHelp', 'helpModal', 'helpClose');
 wireModal('btnFeedback', 'feedbackModal', 'feedbackClose');
 wireFeedback();
 wireSettings();
+updatePeekUI();
 
 // Show help on first visit
 if (!localStorage.getItem('loople-seen-help')) {
