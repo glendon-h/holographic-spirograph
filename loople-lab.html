@@ -853,6 +853,14 @@ function playLockChime(index) {
   playTone(freqs[index % freqs.length], 0.5, 0.12, 'sine');
 }
 
+function playFeedbackSound(state, index) {
+  var bases = [262, 330, 392, 523];
+  var base = bases[index];
+  if (state === 'intune') playTone(base, 0.6, 0.12, 'sine');
+  else if (state === 'close') playTone(base * 0.991, 0.4, 0.08, 'triangle');
+  else playTone(base * 0.5, 0.15, 0.05, 'sine');
+}
+
 function playWinSound() {
   if (!soundEnabled) return;
   var notes = [523, 659, 784, 1047];
@@ -933,7 +941,7 @@ function drawPointsOnCanvas(points, colorFn, lineWidth, alpha) {
 // Redraw target only (from stored points) — call on resize
 function redrawTargetOnly() {
   initTargetCanvas();
-  var targetGray = isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)';
+  var targetGray = isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.5)';
   drawPointsOnCanvas(targetAnimPoints.slice(0, targetDrawIdx), function() {
     return targetGray;
   }, 2, 0.7);
@@ -1038,7 +1046,7 @@ function animateTarget() {
     var jump = Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
     if (jump > canvasW * 0.3) { targetDrawIdx = i + 1; continue; }
 
-    targetCtx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)';
+    targetCtx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.5)';
     targetCtx.lineWidth = 2;
     targetCtx.lineCap = 'round';
     targetCtx.beginPath();
@@ -1183,14 +1191,18 @@ function submitGuess() {
     return;
   }
 
-  // Check all 4 params
-  var won = guess.outer === currentPuzzle.outerIdx &&
-            guess.inner === currentPuzzle.innerIdx &&
-            guess.size === currentPuzzle.ratioIdx &&
-            guess.reach === currentPuzzle.penIdx;
+  // Check each parameter
+  var answerIndices = [currentPuzzle.outerIdx, currentPuzzle.innerIdx, currentPuzzle.ratioIdx, currentPuzzle.penIdx];
+  var guessIndices = [guess.outer, guess.inner, guess.size, guess.reach];
+  var fb = guessIndices.map(function(g, i) {
+    if (g === answerIndices[i]) return 'intune';
+    if (Math.abs(g - answerIndices[i]) === 1) return 'close';
+    return 'off';
+  });
+  var won = fb.every(function(f) { return f === 'intune'; });
 
   guesses.push(guess);
-  feedback.push(won ? ['intune','intune','intune','intune'] : ['off','off','off','off']);
+  feedback.push(fb);
 
   // Disable Roll while drawing
   document.getElementById('rollBtn').setAttribute('disabled', '');
@@ -1198,32 +1210,56 @@ function submitGuess() {
   // Draw the guess spirograph animated
   startGuessAnimation();
 
-  // After drawing finishes, show result
+  // After drawing finishes, show Mastermind result + sound
   var drawTime = guessAnimPoints.length / (3 * currentPuzzle.config.speed) * 16;
   setTimeout(function() {
-    // Add result to strip — single line: green = match, gray = no match
+    // Sort feedback for Mastermind display (don't reveal which param)
+    var sorted = fb.slice().sort(function(a, b) {
+      var order = { intune: 0, close: 1, off: 2 };
+      return order[a] - order[b];
+    });
+
+    // Add 4-line cluster to result strip with sound
     var strip = document.getElementById('resultStrip');
-    var line = document.createElement('span');
-    line.className = 'r-line ' + (won ? 'intune' : 'off');
-    strip.appendChild(line);
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
+    var lines = [];
+    for (var i = 0; i < 4; i++) {
+      var line = document.createElement('span');
+      line.className = 'r-line';
+      cluster.appendChild(line);
+      lines.push(line);
+    }
+    strip.appendChild(cluster);
 
-    if (won) {
-      gameOver = true;
-      onWin();
-      return;
+    // Animate lines with sound
+    for (var i = 0; i < 4; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          lines[idx].classList.add(sorted[idx]);
+          playFeedbackSound(sorted[idx], idx);
+        }, idx * 150);
+      })(i);
     }
 
-    if (guesses.length >= MAX_GUESSES) {
-      gameOver = true;
-      onLose();
-      return;
-    }
+    // After line animation, check win/lose
+    setTimeout(function() {
+      if (won) {
+        gameOver = true;
+        playWinSound();
+        onWin();
+        return;
+      }
+      if (guesses.length >= MAX_GUESSES) {
+        gameOver = true;
+        onLose();
+        return;
+      }
+      saveGameState();
+      updateGuessCount();
+      document.getElementById('rollBtn').removeAttribute('disabled');
+    }, 4 * 150 + 300);
 
-    // Reveal more of the target
-    revealMoreLaps(getLapsSchedule()[guesses.length] || 10);
-    saveGameState();
-    updateGuessCount();
-    document.getElementById('rollBtn').removeAttribute('disabled');
   }, Math.min(drawTime, 3000));
 }
 
@@ -1350,13 +1386,21 @@ function restoreGameState() {
   currentSelection = state.currentSelection || { outer: null, inner: null, size: null, reach: null };
   gameOver = state.gameOver;
 
-  // Restore result strip — one line per guess (green = win, gray = miss)
+  // Restore result strip — 4-line cluster per guess
   var strip = document.getElementById('resultStrip');
   for (var g = 0; g < feedback.length; g++) {
-    var won = feedback[g].every(function(f) { return f === 'intune'; });
-    var line = document.createElement('span');
-    line.className = 'r-line ' + (won ? 'intune' : 'off');
-    strip.appendChild(line);
+    var sorted = feedback[g].slice().sort(function(a, b) {
+      var order = { intune: 0, close: 1, off: 2 };
+      return order[a] - order[b];
+    });
+    var cluster = document.createElement('div');
+    cluster.className = 'result-cluster';
+    for (var d = 0; d < 4; d++) {
+      var line = document.createElement('span');
+      line.className = 'r-line ' + sorted[d];
+      cluster.appendChild(line);
+    }
+    strip.appendChild(cluster);
   }
 
   // Restore picker selections
