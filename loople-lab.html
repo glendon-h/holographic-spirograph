@@ -1267,17 +1267,55 @@ function submitGuess() {
 // ==============================================
 // Win / Lose
 // ==============================================
-function drawAnswerInColor() {
-  // Clear and draw the full answer spirograph in vibrant daily color
-  initTargetCanvas();
-  var fullPoints = computeTargetPoints(currentAnswer, currentPuzzle, 10);
+var revealAnimId = null;
+var revealPoints = [];
+var revealDrawIdx = 0;
+var revealCallback = null;
+
+function animateReveal() {
+  revealAnimId = null;
+  if (revealDrawIdx >= revealPoints.length) {
+    if (revealCallback) revealCallback();
+    return;
+  }
+
+  var rect = targetCanvas.parentElement.getBoundingClientRect();
+  var cx = rect.width / 2, cy = rect.height / 2;
+  var maxR = revealPoints[0].maxR;
+  var scale = Math.min(cx, cy) * 0.62 / (maxR || 1);
+  var canvasW = rect.width;
   var hueRange = currentPuzzle.config.hue;
-  drawPointsOnCanvas(fullPoints, function(i, total) {
-    var progress = i / total;
+
+  var end = Math.min(revealDrawIdx + 3, revealPoints.length);
+  for (var i = revealDrawIdx; i < end; i++) {
+    if (i === 0) { revealDrawIdx = i + 1; continue; }
+    var prev = revealPoints[i - 1], curr = revealPoints[i];
+    var px = cx + prev.x * scale, py = cy + prev.y * scale;
+    var qx = cx + curr.x * scale, qy = cy + curr.y * scale;
+    if (Math.sqrt((qx-px)**2 + (qy-py)**2) > canvasW * 0.3) { revealDrawIdx = i + 1; continue; }
+
+    var progress = i / revealPoints.length;
     var hue = hueRange[0] + progress * (hueRange[1] - hueRange[0]);
     var lightness = TRACE_LIGHTNESS + 10 * Math.sin(i * 0.01);
-    return 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.85)';
-  }, 2, 0.7);
+    targetCtx.strokeStyle = 'hsla(' + hue + ', 70%, ' + lightness + '%, 0.85)';
+    targetCtx.lineWidth = 2;
+    targetCtx.lineCap = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py);
+    targetCtx.lineTo(qx, qy);
+    targetCtx.stroke();
+  }
+  revealDrawIdx = end;
+  revealAnimId = requestAnimationFrame(animateReveal);
+}
+
+function drawAnswerAnimated(onDone) {
+  initTargetCanvas();
+  revealPoints = computeTargetPoints(currentAnswer, currentPuzzle, 10);
+  revealDrawIdx = 0;
+  revealCallback = onDone;
+  if (revealAnimId) cancelAnimationFrame(revealAnimId);
+  animateReveal();
 }
 
 function onWin() {
@@ -1286,8 +1324,7 @@ function onWin() {
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Perfect match!';
   setTimeout(function() {
-    drawAnswerInColor();
-    showEndModal(true);
+    drawAnswerAnimated(function() { showEndModal(true); });
   }, 500);
 }
 
@@ -1296,8 +1333,7 @@ function onLose() {
   document.getElementById('rollBtn').setAttribute('disabled', '');
   document.getElementById('guessStatus').textContent = 'Next time!';
   setTimeout(function() {
-    drawAnswerInColor();
-    showEndModal(false);
+    drawAnswerAnimated(function() { showEndModal(false); });
   }, 500);
 }
 
