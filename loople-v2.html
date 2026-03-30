@@ -180,6 +180,37 @@
   .target-wrap canvas {
     width: 100%;
     height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .preview-canvas {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+  }
+  .target-wrap.peeking .preview-canvas {
+    opacity: 1;
+  }
+  .target-wrap.peeking #target {
+    opacity: 0;
+  }
+  .flip-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--muted3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  .target-wrap.peeking .flip-hint {
+    display: none;
   }
 
   /* Pickers */
@@ -474,9 +505,11 @@
     </div>
   </div>
 
-  <!-- Single canvas: target + guess overlay -->
-  <div class="target-wrap">
+  <!-- Flippable canvas area -->
+  <div class="target-wrap" id="targetWrap">
     <canvas id="target"></canvas>
+    <canvas id="preview" class="preview-canvas"></canvas>
+    <div class="flip-hint" id="flipHint">tap to peek</div>
   </div>
 
   <!-- Result strip -->
@@ -1152,6 +1185,159 @@ function startGuessAnimation() {
   if (guessAnimId) cancelAnimationFrame(guessAnimId);
   animateGuess();
 }
+
+// ==============================================
+// Preview — rolling simulation with fading trail
+// ==============================================
+var previewCanvas, previewCtx;
+var previewAnimId = null;
+var previewDist = 0;
+var previewPrevX = null, previewPrevY = null;
+var isPeeking = false;
+
+function initPreviewCanvas() {
+  previewCanvas = document.getElementById('preview');
+  var rect = previewCanvas.parentElement.getBoundingClientRect();
+  previewCanvas.width = rect.width * devicePixelRatio;
+  previewCanvas.height = rect.height * devicePixelRatio;
+  previewCtx = previewCanvas.getContext('2d');
+  previewCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+
+function animatePreview() {
+  if (!isPeeking) return;
+
+  var answer = buildGuessAnswer();
+  if (!answer) { previewAnimId = requestAnimationFrame(animatePreview); return; }
+
+  var rect = previewCanvas.parentElement.getBoundingClientRect();
+  var w = rect.width, h = rect.height, cx = w / 2, cy = h / 2;
+
+  var sA = makeShape(answer.outer);
+  var sB = makeShape(answer.inner);
+  var atA = arcTable(sA, 2000);
+  var atB = arcTable(sB, 2000);
+
+  var maxR = 0;
+  for (var i = 0; i < 200; i++) { var p = sA.getPoint((i/200)*Math.PI*2); maxR = Math.max(maxR, Math.sqrt(p.x*p.x+p.y*p.y)); }
+  var rs = Math.min(cx, cy) * 0.6 / (maxR || 1);
+
+  // Fade previous frame — creates the disappearing trail
+  previewCtx.fillStyle = isLight ? 'rgba(245,245,248,0.12)' : 'rgba(12,12,20,0.12)';
+  previewCtx.fillRect(0, 0, w, h);
+
+  // Draw outer shape (faint outline)
+  previewCtx.beginPath();
+  for (var i = 0; i <= 300; i++) {
+    var t = (i/300)*Math.PI*2, p = sA.getPoint(t);
+    var x = cx+p.x*rs, y = cy+p.y*rs;
+    if (i===0) previewCtx.moveTo(x,y); else previewCtx.lineTo(x,y);
+  }
+  previewCtx.closePath();
+  previewCtx.strokeStyle = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  previewCtx.lineWidth = 1;
+  previewCtx.stroke();
+
+  // Compute rolling
+  previewDist += 0.03;
+  var thetaA = arc2theta(atA.table, previewDist % atA.totalLen);
+  var pA = sA.getPoint(thetaA);
+  var dt = 0.001, pA2 = sA.getPoint(thetaA+dt);
+  var tx = pA2.x-pA.x, ty = pA2.y-pA.y;
+  var tl = Math.sqrt(tx*tx+ty*ty); if (tl>0) { tx/=tl; ty/=tl; }
+  var nx = ty, ny = -tx;
+  if (nx*pA.x+ny*pA.y>0) { nx=-nx; ny=-ny; }
+
+  var bPer = atB.totalLen * answer.ratio;
+  var thetaB = arc2theta(atB.table, (previewDist%bPer)/answer.ratio);
+  var rB = sB.getPolarRadius(thetaB) * answer.ratio;
+  var clampedRB = Math.min(rB, Math.sqrt(pA.x*pA.x+pA.y*pA.y)*0.9);
+  var cbx = pA.x+nx*clampedRB, cby = pA.y+ny*clampedRB;
+  var rot = thetaA-thetaB;
+  var pd = answer.pen * answer.ratio;
+  var penX = cbx+pd*Math.cos(rot), penY = cby+pd*Math.sin(rot);
+
+  // Draw inner shape B at position (rotated)
+  previewCtx.beginPath();
+  for (var i = 0; i <= 200; i++) {
+    var t = (i/200)*Math.PI*2, bp = sB.getPoint(t);
+    var bx = (bp.x*answer.ratio*Math.cos(rot)-bp.y*answer.ratio*Math.sin(rot))+cbx;
+    var by = (bp.x*answer.ratio*Math.sin(rot)+bp.y*answer.ratio*Math.cos(rot))+cby;
+    var sx = cx+bx*rs, sy = cy+by*rs;
+    if (i===0) previewCtx.moveTo(sx,sy); else previewCtx.lineTo(sx,sy);
+  }
+  previewCtx.closePath();
+  previewCtx.strokeStyle = isLight ? 'rgba(100,80,200,0.3)' : 'rgba(200,160,255,0.3)';
+  previewCtx.lineWidth = 1;
+  previewCtx.stroke();
+
+  // Contact point
+  var csx = cx+pA.x*rs, csy = cy+pA.y*rs;
+  previewCtx.fillStyle = isLight ? 'rgba(180,150,30,0.6)' : 'rgba(255,220,50,0.6)';
+  previewCtx.beginPath(); previewCtx.arc(csx,csy,2.5,0,Math.PI*2); previewCtx.fill();
+
+  // Pen arm
+  var psx = cx+penX*rs, psy = cy+penY*rs;
+  var bcsx = cx+cbx*rs, bcsy = cy+cby*rs;
+  previewCtx.strokeStyle = isLight ? 'rgba(0,150,200,0.3)' : 'rgba(0,255,255,0.3)';
+  previewCtx.lineWidth = 1;
+  previewCtx.beginPath(); previewCtx.moveTo(bcsx,bcsy); previewCtx.lineTo(psx,psy); previewCtx.stroke();
+
+  // Pen dot
+  var hueRange = currentPuzzle.config.hue;
+  var hue = hueRange[0] + ((previewDist * 10) % 1) * (hueRange[1] - hueRange[0]);
+  previewCtx.fillStyle = 'hsla(' + hue + ', 70%, 60%, 0.8)';
+  previewCtx.beginPath(); previewCtx.arc(psx,psy,3,0,Math.PI*2); previewCtx.fill();
+
+  // Fading trail line
+  if (previewPrevX !== null) {
+    var jump = Math.sqrt((psx-previewPrevX)**2+(psy-previewPrevY)**2);
+    if (jump < w*0.3) {
+      previewCtx.strokeStyle = 'hsla(' + hue + ', 70%, 60%, 0.5)';
+      previewCtx.lineWidth = 1.5;
+      previewCtx.lineCap = 'round';
+      previewCtx.beginPath(); previewCtx.moveTo(previewPrevX,previewPrevY); previewCtx.lineTo(psx,psy); previewCtx.stroke();
+    }
+  }
+  previewPrevX = psx; previewPrevY = psy;
+
+  previewAnimId = requestAnimationFrame(animatePreview);
+}
+
+function startPreview() {
+  isPeeking = true;
+  document.getElementById('targetWrap').classList.add('peeking');
+  initPreviewCanvas();
+  previewDist = 0;
+  previewPrevX = previewPrevY = null;
+  animatePreview();
+}
+
+function stopPreview() {
+  isPeeking = false;
+  document.getElementById('targetWrap').classList.remove('peeking');
+  if (previewAnimId) { cancelAnimationFrame(previewAnimId); previewAnimId = null; }
+}
+
+// Wire tap-to-peek
+document.getElementById('targetWrap').addEventListener('touchstart', function(e) {
+  if (gameOver) return;
+  e.preventDefault();
+  startPreview();
+});
+document.getElementById('targetWrap').addEventListener('touchend', function() {
+  stopPreview();
+});
+document.getElementById('targetWrap').addEventListener('mousedown', function() {
+  if (gameOver) return;
+  startPreview();
+});
+document.getElementById('targetWrap').addEventListener('mouseup', function() {
+  stopPreview();
+});
+document.getElementById('targetWrap').addEventListener('mouseleave', function() {
+  stopPreview();
+});
 
 // Animated drawing of target
 function animateTarget() {
