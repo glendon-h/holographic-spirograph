@@ -1131,10 +1131,7 @@ var guessDrawIdx = 0;
 
 function animateGuess() {
   guessAnimId = null;
-  if (!guessAnimPoints.length || guessDrawIdx >= guessAnimPoints.length) {
-    if (guessAnimCallback) { var cb = guessAnimCallback; guessAnimCallback = null; cb(); }
-    return;
-  }
+  if (!guessAnimPoints.length || guessDrawIdx >= guessAnimPoints.length) return;
 
   var rect = targetCanvas.parentElement.getBoundingClientRect();
   var cx = rect.width / 2, cy = rect.height / 2;
@@ -1568,77 +1565,69 @@ function submitGuess() {
 
   // Disable Draw while drawing
   document.getElementById('rollBtn').setAttribute('disabled', '');
+  guessAnimCallback = null;
 
-  // Draw the guess spirograph animated — show results when done via callback
-  guessAnimCallback = function() {
-    // Sort feedback for Mastermind display (don't reveal which param)
-    var sorted = fb.slice().sort(function(a, b) {
-      var order = { intune: 0, close: 1, off: 2 };
-      return order[a] - order[b];
-    });
-
-    // Add 4-line cluster to result strip with sound
-    var strip = document.getElementById('resultStrip');
-    var cluster = document.createElement('div');
-    cluster.className = 'result-cluster';
-    var lines = [];
-    for (var i = 0; i < 4; i++) {
-      var line = document.createElement('span');
-      line.className = 'r-line';
-      cluster.appendChild(line);
-      lines.push(line);
-    }
-    strip.appendChild(cluster);
-
-    // Animate lines with sound
-    for (var i = 0; i < 4; i++) {
-      (function(idx) {
-        setTimeout(function() {
-          lines[idx].classList.add(sorted[idx]);
-          playFeedbackSound(sorted[idx], idx);
-        }, idx * 150);
-      })(i);
-    }
-
-    // After line animation, check win/lose
-    setTimeout(function() {
-      if (won) {
-        gameOver = true;
-        playWinSound();
-        onWin();
-        return;
-      }
-      if (guesses.length >= MAX_GUESSES) {
-        gameOver = true;
-        onLose();
-        return;
-      }
-      saveGameState();
-      updateGuessCount();
-      var btn = document.getElementById('rollBtn');
-      btn.textContent = 'Replay';
-      btn.removeAttribute('disabled');
-      canReplay = true;
-    }, 4 * 150 + 300);
-
-  };
-
-  // Safety timeout — if animation takes too long or stalls, fire callback anyway
-  var safetyTimeout = setTimeout(function() {
-    if (guessAnimCallback) {
-      var cb = guessAnimCallback;
-      guessAnimCallback = null;
-      cb();
-    }
-  }, 15000);
-
-  var origCallback = guessAnimCallback;
-  guessAnimCallback = function() {
-    clearTimeout(safetyTimeout);
-    origCallback();
-  };
-
+  // Start drawing
   startGuessAnimation();
+
+  // Poll for animation completion
+  var checkDone = setInterval(function() {
+    if (guessDrawIdx < guessAnimPoints.length) return;
+    clearInterval(checkDone);
+    showGuessResult(fb, won);
+  }, 100);
+}
+
+function showGuessResult(fb, won) {
+  // Sort feedback for Mastermind display
+  var sorted = fb.slice().sort(function(a, b) {
+    var order = { intune: 0, close: 1, off: 2 };
+    return order[a] - order[b];
+  });
+
+  // Add 4-line cluster to result strip with sound
+  var strip = document.getElementById('resultStrip');
+  var cluster = document.createElement('div');
+  cluster.className = 'result-cluster';
+  var lines = [];
+  for (var i = 0; i < 4; i++) {
+    var line = document.createElement('span');
+    line.className = 'r-line';
+    cluster.appendChild(line);
+    lines.push(line);
+  }
+  strip.appendChild(cluster);
+
+  // Animate lines with sound
+  for (var i = 0; i < 4; i++) {
+    (function(idx) {
+      setTimeout(function() {
+        lines[idx].classList.add(sorted[idx]);
+        playFeedbackSound(sorted[idx], idx);
+      }, idx * 150);
+    })(i);
+  }
+
+  // After line animation, check win/lose
+  setTimeout(function() {
+    if (won) {
+      gameOver = true;
+      playWinSound();
+      onWin();
+      return;
+    }
+    if (guesses.length >= MAX_GUESSES) {
+      gameOver = true;
+      onLose();
+      return;
+    }
+    saveGameState();
+    updateGuessCount();
+    var btn = document.getElementById('rollBtn');
+    btn.textContent = 'Replay';
+    btn.removeAttribute('disabled');
+    canReplay = true;
+  }, 4 * 150 + 300);
 }
 
 // ==============================================
